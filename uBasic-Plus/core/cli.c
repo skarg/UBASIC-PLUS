@@ -1,6 +1,51 @@
 #include "cli.h"
 #include "ubasic.h"
-#include "../hardware/usart.h"
+
+void print_serial(char * msg)
+{
+  (void) msg;
+}
+
+void print_serial_n(char * msg, uint16_t n)
+{
+  (void) msg;
+  (void) n;
+}
+
+void print_numbered_lines(char * script)
+{
+  uint16_t counter=0;
+  char msg[32];
+
+  char *c = script, *d=0, *e=0;
+
+  do
+  {
+    counter++;
+    sprintf(msg,"%02u ", counter);
+    print_serial(msg);
+
+    char *s = c;
+    while (*s==' ') ++s;
+
+    /* important: because two EOLs are used make sure that the first of the two is selected ! */
+    d = strchr(s,';');
+    e = strchr(s,'\n');
+    if (e)
+      d = d-e > 0 ? e : d;
+
+    if (d)
+    {
+      print_serial_n(s, d-s);
+      c = d+1;
+    }
+    else
+      print_serial(s);
+
+    print_serial("\n");
+  }
+  while(d);
+}
 
 /* Example Scripts for demo command ---------------------------------------------------------*/
 const char welcome_msg[]=
@@ -233,9 +278,11 @@ end"
 static char script[UBASIC_SCRIPT_SIZE_MAX];
 static char statement[UBASIC_STATEMENT_SIZE_MAX];
 static uint8_t cli_state=UBASIC_CLI_IDLE;
+static struct ubasic_data UBasic_Program;
 
 void ubasic_cli(void)
 {
+  struct ubasic_data *data = &UBasic_Program;
 
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
   EE_Init();
@@ -243,14 +290,14 @@ void ubasic_cli(void)
 
   if ( (cli_state == UBASIC_CLI_LOADED) || (cli_state == UBASIC_CLI_RUNNING) )
   {
-    ubasic_run_program();
+    ubasic_run_program(data);
     cli_state = UBASIC_CLI_RUNNING;
-    if (ubasic_finished())
+    if (ubasic_finished(data))
     {
       cli_state = UBASIC_CLI_IDLE;
       print_serial("\n>");
     }
-    else if (!ubasic_waiting_for_input())
+    else if (!ubasic_waiting_for_input(data))
     {
       if (serial_input_available())
       {
@@ -260,7 +307,7 @@ void ubasic_cli(void)
             // enter programming mode
           print_serial("killed\n>");
           cli_state = UBASIC_CLI_IDLE;
-          ubasic_load_program(NULL);
+          ubasic_load_program(data, NULL);
           return;
         }
       }
@@ -287,7 +334,7 @@ void ubasic_cli(void)
         print_serial("run\n");
         if (strlen(script) > 0)
         {
-          ubasic_load_program( script );
+          ubasic_load_program( data, script );
           cli_state = UBASIC_CLI_LOADED;
         }
         return;

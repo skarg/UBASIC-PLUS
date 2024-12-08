@@ -164,27 +164,6 @@
 
 #endif
 
-#define UBASIC_STATUS_RUN   0x80
-#define UBASIC_STATUS_MASK_NOT_RUNNING 0x7f
-#define UBASIC_STATUS_IDLE  0x00
-
-/* define a structure with bit fields */
-typedef union
-{
-  uint8_t byte;
-  struct
-  {
-    uint8_t notInitialized : 1;
-    uint8_t stringstackModified : 1;
-    uint8_t bit2 : 1;
-    uint8_t bit3 : 1;
-    uint8_t bit4 : 1;
-    uint8_t WaitForSerialInput : 1;
-    uint8_t Error       : 1;
-    uint8_t isRunning   : 1;
-  } bit;
-} _Status;
-
 #define MAX_STRINGLEN     40
 #define MAX_LABEL_LEN     10
 
@@ -195,27 +174,11 @@ typedef union
 #define MAX_SVARNUM       26
 #endif
 
-
-//
-// What it means to support SLEEP:
-//    An interrupt routine has to exist which checks the value of
-//        'ubasic_script_sleeping_ms'
-//    and decrease it by one every ms. As long as this is nonzero
-//        ubasic_run()
-//    will return immediately and not execute BASIC script.
-//    The sleep() sets this to requested value of ms to sleep.
-#if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-extern volatile uint32_t ubasic_script_sleeping_ms;
-#endif
-
-
 // What it means to support PWM:
 #if defined(UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
-extern int16_t dutycycle_pwm_ch[UBASIC_SCRIPT_HAVE_PWM_CHANNELS];
 void analogWriteConfig(uint16_t psc, uint16_t per);
 void analogWrite(uint8_t ch, int16_t dutycycle);
 #endif
-
 
 //
 // What it means to support tic(n) toc(n):

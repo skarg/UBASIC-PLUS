@@ -27,8 +27,8 @@
  * SUCH DAMAGE.
  *
  */
- 
- /*
+
+/*
  * Modified to support simple string variables and functions by David Mitchell
  * November 2008.
  * Changes and additions are marked 'string additions' throughout
@@ -36,12 +36,8 @@
 
 #include "config.h"
 #include "tokenizer.h"
-extern volatile _Status ubasic_status;
-// uint16_t    current_line=0;
 
-static char const *ptr, *nextptr;
-
-static char const *prog;
+extern volatile _Status status;
 
 #define MAX_NUMLEN 8
 
@@ -51,126 +47,123 @@ struct keyword_token
   uint8_t token;
 };
 
-static uint8_t current_token = TOKENIZER_ERROR;
-
 static const struct keyword_token keywords[] =
-{
+    {
 #if defined(VARIABLE_TYPE_STRING)
-// new string-related statements and functions
-  {"left$",                   TOKENIZER_LEFT$},
-  {"right$",                  TOKENIZER_RIGHT$},
-  {"mid$",                    TOKENIZER_MID$},
-  {"str$",                    TOKENIZER_STR$},
-  {"chr$",                    TOKENIZER_CHR$},
-  {"val",                     TOKENIZER_VAL},
-  {"len",                     TOKENIZER_LEN},
-  {"instr",                   TOKENIZER_INSTR},
-  {"asc",                     TOKENIZER_ASC},
+        // new string-related statements and functions
+        {"left$", TOKENIZER_LEFT$},
+        {"right$", TOKENIZER_RIGHT$},
+        {"mid$", TOKENIZER_MID$},
+        {"str$", TOKENIZER_STR$},
+        {"chr$", TOKENIZER_CHR$},
+        {"val", TOKENIZER_VAL},
+        {"len", TOKENIZER_LEN},
+        {"instr", TOKENIZER_INSTR},
+        {"asc", TOKENIZER_ASC},
 #endif
-// end of string additions
-  {"let ", TOKENIZER_LET},
-  {"println ", TOKENIZER_PRINTLN},
-  {"print ", TOKENIZER_PRINT},
-  {"if", TOKENIZER_IF},
-  {"then", TOKENIZER_THEN},
-  {"else", TOKENIZER_ELSE},
-  {"endif", TOKENIZER_ENDIF},
+        // end of string additions
+        {"let ", TOKENIZER_LET},
+        {"println ", TOKENIZER_PRINTLN},
+        {"print ", TOKENIZER_PRINT},
+        {"if", TOKENIZER_IF},
+        {"then", TOKENIZER_THEN},
+        {"else", TOKENIZER_ELSE},
+        {"endif", TOKENIZER_ENDIF},
 #if defined(UBASIC_SCRIPT_HAVE_TICTOC)
-  {"toc", TOKENIZER_TOC},
+        {"toc", TOKENIZER_TOC},
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
-  {"input", TOKENIZER_INPUT},
+        {"input", TOKENIZER_INPUT},
 #endif
-  {"for ", TOKENIZER_FOR},
-  {"to ", TOKENIZER_TO},
-  {"next ", TOKENIZER_NEXT},
-  {"step ", TOKENIZER_STEP},
-  {"while", TOKENIZER_WHILE},
-  {"endwhile", TOKENIZER_ENDWHILE},
-  {"goto ", TOKENIZER_GOTO},
-  {"gosub ", TOKENIZER_GOSUB},
-  {"return", TOKENIZER_RETURN},
-  {"end", TOKENIZER_END},
+        {"for ", TOKENIZER_FOR},
+        {"to ", TOKENIZER_TO},
+        {"next ", TOKENIZER_NEXT},
+        {"step ", TOKENIZER_STEP},
+        {"while", TOKENIZER_WHILE},
+        {"endwhile", TOKENIZER_ENDWHILE},
+        {"goto ", TOKENIZER_GOTO},
+        {"gosub ", TOKENIZER_GOSUB},
+        {"return", TOKENIZER_RETURN},
+        {"end", TOKENIZER_END},
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-  {"sleep", TOKENIZER_SLEEP},
+        {"sleep", TOKENIZER_SLEEP},
 #endif
 #if defined(VARIABLE_TYPE_ARRAY)
-  {"dim ", TOKENIZER_DIM},
+        {"dim ", TOKENIZER_DIM},
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_TICTOC)
-  {"tic", TOKENIZER_TIC},
+        {"tic", TOKENIZER_TIC},
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
-  {"flag", TOKENIZER_HWE},
+        {"flag", TOKENIZER_HWE},
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
-  {"ran", TOKENIZER_RAN},
+        {"ran", TOKENIZER_RAN},
 #endif
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
-  {"sqrt", TOKENIZER_SQRT},
-  {"sin",  TOKENIZER_SIN},
-  {"cos", TOKENIZER_COS},
-  {"tan", TOKENIZER_TAN},
-  {"exp", TOKENIZER_EXP},
-  {"ln", TOKENIZER_LN},
-  #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
-  {"uniform", TOKENIZER_UNIFORM},
-  #endif
-  {"abs", TOKENIZER_ABS},
-  {"floor", TOKENIZER_FLOOR},
-  {"ceil", TOKENIZER_CEIL},
-  {"round", TOKENIZER_ROUND},
-  {"pow", TOKENIZER_POWER},
+        {"sqrt", TOKENIZER_SQRT},
+        {"sin", TOKENIZER_SIN},
+        {"cos", TOKENIZER_COS},
+        {"tan", TOKENIZER_TAN},
+        {"exp", TOKENIZER_EXP},
+        {"ln", TOKENIZER_LN},
+#if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
+        {"uniform", TOKENIZER_UNIFORM},
+#endif
+        {"abs", TOKENIZER_ABS},
+        {"floor", TOKENIZER_FLOOR},
+        {"ceil", TOKENIZER_CEIL},
+        {"round", TOKENIZER_ROUND},
+        {"pow", TOKENIZER_POWER},
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_GPIO_CHANNELS)
-  {"pinmode", TOKENIZER_PINMODE},
-  {"dread", TOKENIZER_DREAD},
-  {"dwrite", TOKENIZER_DWRITE},
+        {"pinmode", TOKENIZER_PINMODE},
+        {"dread", TOKENIZER_DREAD},
+        {"dwrite", TOKENIZER_DWRITE},
 #endif
 #ifdef UBASIC_SCRIPT_HAVE_PWM_CHANNELS
-  {"awrite_conf", TOKENIZER_PWMCONF},
-  {"awrite", TOKENIZER_PWM},
+        {"awrite_conf", TOKENIZER_PWMCONF},
+        {"awrite", TOKENIZER_PWM},
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
-  {"aread_conf", TOKENIZER_AREADCONF},
-  {"aread", TOKENIZER_AREAD},
+        {"aread_conf", TOKENIZER_AREADCONF},
+        {"aread", TOKENIZER_AREAD},
 #endif
-  {"hex ", TOKENIZER_PRINT_HEX},
-  {"dec ", TOKENIZER_PRINT_DEC},
-  { ":", TOKENIZER_COLON},
+        {"hex ", TOKENIZER_PRINT_HEX},
+        {"dec ", TOKENIZER_PRINT_DEC},
+        {":", TOKENIZER_COLON},
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
-  { "store", TOKENIZER_STORE},
-  { "recall", TOKENIZER_RECALL},
+        {"store", TOKENIZER_STORE},
+        {"recall", TOKENIZER_RECALL},
 #endif
-  { "clear", TOKENIZER_CLEAR},
-  {NULL, TOKENIZER_ERROR}
-};
+        {"clear", TOKENIZER_CLEAR},
+        {NULL, TOKENIZER_ERROR}};
 
 /*---------------------------------------------------------------------------*/
-static uint8_t singlechar_or_operator(uint8_t *offset)
+static uint8_t singlechar_or_operator(struct tokenizer_data *tree, uint8_t *offset)
 {
   if (offset)
-    *offset=1;
+    *offset = 1;
 
-  if ((*ptr == '\n') || (*ptr == ';'))
+  if ((*tree->ptr == '\n') || (*tree->ptr == ';'))
   {
     return TOKENIZER_EOL;
   }
-  else if(*ptr == ',')
+  else if (*tree->ptr == ',')
   {
     return TOKENIZER_COMMA;
   }
-  else if(*ptr == '+')
+  else if (*tree->ptr == '+')
   {
     return TOKENIZER_PLUS;
   }
-  else if(*ptr == '-')
+  else if (*tree->ptr == '-')
   {
     return TOKENIZER_MINUS;
   }
-  else if(*ptr == '&')
+  else if (*tree->ptr == '&')
   {
-    if (*(ptr+1) == '&')
+    if (*(tree->ptr + 1) == '&')
     {
       if (offset)
         *offset += 1;
@@ -178,9 +171,9 @@ static uint8_t singlechar_or_operator(uint8_t *offset)
     }
     return TOKENIZER_AND;
   }
-  else if(*ptr == '|')
+  else if (*tree->ptr == '|')
   {
-    if (*(ptr+1) == '|')
+    if (*(tree->ptr + 1) == '|')
     {
       if (offset)
         *offset += 1;
@@ -188,43 +181,43 @@ static uint8_t singlechar_or_operator(uint8_t *offset)
     }
     return TOKENIZER_OR;
   }
-  else if(*ptr == '*')
+  else if (*tree->ptr == '*')
   {
     return TOKENIZER_ASTR;
   }
-  else if(*ptr == '!')
+  else if (*tree->ptr == '!')
   {
     return TOKENIZER_LNOT;
   }
-  else if(*ptr == '~')
+  else if (*tree->ptr == '~')
   {
     return TOKENIZER_NOT;
   }
-  else if(*ptr == '/')
+  else if (*tree->ptr == '/')
   {
     return TOKENIZER_SLASH;
   }
-  else if(*ptr == '%')
+  else if (*tree->ptr == '%')
   {
     return TOKENIZER_MOD;
   }
-  else if(*ptr == '(')
+  else if (*tree->ptr == '(')
   {
     return TOKENIZER_LEFTPAREN;
   }
-  else if(*ptr == ')')
+  else if (*tree->ptr == ')')
   {
     return TOKENIZER_RIGHTPAREN;
   }
-  else if(*ptr == '<')
+  else if (*tree->ptr == '<')
   {
-    if (ptr[1] == '=')
+    if (tree->ptr[1] == '=')
     {
       if (offset)
         *offset += 1;
       return TOKENIZER_LE;
     }
-    else if (ptr[1] == '>')
+    else if (tree->ptr[1] == '>')
     {
       if (offset)
         *offset += 1;
@@ -232,9 +225,9 @@ static uint8_t singlechar_or_operator(uint8_t *offset)
     }
     return TOKENIZER_LT;
   }
-  else if(*ptr == '>')
+  else if (*tree->ptr == '>')
   {
-    if (ptr[1] == '=')
+    if (tree->ptr[1] == '=')
     {
       if (offset)
         *offset += 1;
@@ -242,9 +235,9 @@ static uint8_t singlechar_or_operator(uint8_t *offset)
     }
     return TOKENIZER_GT;
   }
-  else if(*ptr == '=')
+  else if (*tree->ptr == '=')
   {
-    if (ptr[1] == '=')
+    if (tree->ptr[1] == '=')
       if (offset)
         *offset += 1;
     return TOKENIZER_EQ;
@@ -252,111 +245,108 @@ static uint8_t singlechar_or_operator(uint8_t *offset)
   return 0;
 }
 /*---------------------------------------------------------------------------*/
-static uint8_t get_next_token(void)
+static uint8_t tokenizer_next_token(struct tokenizer_data *tree)
 {
   struct keyword_token const *kt;
-  uint8_t i,j;
+  uint8_t i, j;
 
   // eat all whitespace
-  while(*ptr == ' ' || *ptr == '\t' || *ptr == '\r')
-    ptr++;
+  while (*tree->ptr == ' ' || *tree->ptr == '\t' || *tree->ptr == '\r')
+    tree->ptr++;
 
-  if(*ptr == 0)
+  if (*tree->ptr == 0)
   {
     return TOKENIZER_ENDOFINPUT;
   }
 
-  uint8_t have_decdot=0, i_dot=0;
-  if ( (ptr[0]=='0') && ((ptr[1]=='x')||(ptr[1]=='X')) )
+  uint8_t have_decdot = 0, i_dot = 0;
+  if ((tree->ptr[0] == '0') && ((tree->ptr[1] == 'x') || (tree->ptr[1] == 'X')))
   {
     // is it HEX
-    nextptr = ptr + 2;
+    tree->nextptr = tree->ptr + 2;
     while (1)
     {
-      if (*nextptr>='0' && *nextptr<='9')
+      if (*tree->nextptr >= '0' && *tree->nextptr <= '9')
       {
-        nextptr++;
+        tree->nextptr++;
         continue;
       }
-      if ( (*nextptr>='a') && (*nextptr<='f') )
+      if ((*tree->nextptr >= 'a') && (*tree->nextptr <= 'f'))
       {
-        nextptr++;
+        tree->nextptr++;
         continue;
       }
-      if ( (*nextptr>='A') && (*nextptr<='F') )
+      if ((*tree->nextptr >= 'A') && (*tree->nextptr <= 'F'))
       {
-        nextptr++;
+        tree->nextptr++;
         continue;
       }
       return TOKENIZER_INT;
     }
   }
-  else if ( (ptr[0]=='0') && ((ptr[1]=='b')||(ptr[1]=='B')) )
+  else if ((tree->ptr[0] == '0') && ((tree->ptr[1] == 'b') || (tree->ptr[1] == 'B')))
   {
     // is it BIN
-    nextptr = ptr + 2;
-    while (*nextptr=='0' || *nextptr=='1')
-      nextptr++;
+    tree->nextptr = tree->ptr + 2;
+    while (*tree->nextptr == '0' || *tree->nextptr == '1')
+      tree->nextptr++;
     return TOKENIZER_INT;
   }
-  else if( isdigit(*ptr) || (*ptr=='.') )
+  else if (isdigit(*tree->ptr) || (*tree->ptr == '.'))
   {
     // is it
     //    FLOAT (digits with at most one decimal point)
     // or is it
     //    DEC (digits without decimal point which ends in d,D,L,l)
-    nextptr = ptr;
+    tree->nextptr = tree->ptr;
     have_decdot = 0;
     i_dot = 0;
     while (1)
     {
-      if (*nextptr>='0' && *nextptr<='9')
+      if (*tree->nextptr >= '0' && *tree->nextptr <= '9')
       {
-        nextptr++;
+        tree->nextptr++;
         if (have_decdot)
           i_dot++;
         continue;
       }
-      if (*nextptr=='.')
+      if (*tree->nextptr == '.')
       {
-        nextptr++;
+        tree->nextptr++;
         have_decdot++;
-        if (have_decdot>1)
+        if (have_decdot > 1)
           return TOKENIZER_ERROR;
         continue;
       }
-      if (*nextptr=='d' || *nextptr=='D' || *nextptr=='l' || *nextptr=='L')
+      if (*tree->nextptr == 'd' || *tree->nextptr == 'D' || *tree->nextptr == 'l' || *tree->nextptr == 'L')
         return TOKENIZER_INT;
 
-  #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
+#if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
       if (i_dot)
         return TOKENIZER_FLOAT;
-  #endif
+#endif
 
       return TOKENIZER_NUMBER;
     }
   }
-  else if ( (j = singlechar_or_operator(&i)) )
+  else if ((j = singlechar_or_operator(tree, &i)))
   {
-    nextptr = ptr + i;
-//     if (j == TOKENIZER_EOL)
-//       current_line++;
+    tree->nextptr = tree->ptr + i;
     return j;
   }
 #if defined(VARIABLE_TYPE_STRING)
-  else if (( *ptr == '"' || *ptr == '\'') && (*(ptr-1) != '\\') )
+  else if ((*tree->ptr == '"' || *tree->ptr == '\'') && (*(tree->ptr - 1) != '\\'))
   {
-    i = *ptr;
-    nextptr = ptr;
+    i = *tree->ptr;
+    tree->nextptr = tree->ptr;
     do
     {
-      ++nextptr;
-      if ((*nextptr=='\0')||(*nextptr=='\n')||(*nextptr==';'))
+      ++tree->nextptr;
+      if ((*tree->nextptr == '\0') || (*tree->nextptr == '\n') || (*tree->nextptr == ';'))
         return TOKENIZER_ERROR;
-    }
-    while(*nextptr != i || *(nextptr-1) == '\\');
+    } while (*tree->nextptr != i || *(tree->nextptr - 1) == '\\');
 
-    ++nextptr;
+    ++tree->nextptr;
 
     return TOKENIZER_STRING;
   }
@@ -364,53 +354,54 @@ static uint8_t get_next_token(void)
   else
   {
     /* Check for keywords: */
-   for(kt = keywords; kt->keyword != NULL; ++kt)
-   {
-     if(strncmp(ptr, kt->keyword, strlen(kt->keyword)) == 0) {
-       nextptr = ptr + strlen(kt->keyword);
-       return kt->token;
-     }
-   }
+    for (kt = keywords; kt->keyword != NULL; ++kt)
+    {
+      if (strncmp(tree->ptr, kt->keyword, strlen(kt->keyword)) == 0)
+      {
+        tree->nextptr = tree->ptr + strlen(kt->keyword);
+        return kt->token;
+      }
+    }
   }
 
   /**
-    * what is left after this point we call a label as long as
-    * it starts with "_" or a..z
-    * and contains only digits and letters
-    */
+   * what is left after this point we call a label as long as
+   * it starts with "_" or a..z
+   * and contains only digits and letters
+   */
   i = 0;
   j = 0;
-  if(*ptr == '_' || (*ptr >= 'a' && *ptr <= 'z') || (*ptr >= 'A' && *ptr <= 'Z') )
+  if (*tree->ptr == '_' || (*tree->ptr >= 'a' && *tree->ptr <= 'z') || (*tree->ptr >= 'A' && *tree->ptr <= 'Z'))
   {
-    nextptr = ptr;
-    while(1)
+    tree->nextptr = tree->ptr;
+    while (1)
     {
-      if ( *nextptr == '_' )
+      if (*tree->nextptr == '_')
       {
         j++;
-        nextptr++;
+        tree->nextptr++;
         continue;
       }
-      if ( (*nextptr>='0') && (*nextptr<='9') )
+      if ((*tree->nextptr >= '0') && (*tree->nextptr <= '9'))
       {
         i++;
-        nextptr++;
+        tree->nextptr++;
         continue;
       }
-      if ( (*nextptr>='a') && (*nextptr<='z') )
+      if ((*tree->nextptr >= 'a') && (*tree->nextptr <= 'z'))
       {
         i++;
-        nextptr++;
+        tree->nextptr++;
         continue;
       }
-      if ( (*nextptr>='A') && (*nextptr<='Z') )
+      if ((*tree->nextptr >= 'A') && (*tree->nextptr <= 'Z'))
       {
         i++;
-        nextptr++;
+        tree->nextptr++;
         continue;
       }
 
-      if (j>0 || i>1)
+      if (j > 0 || i > 1)
       {
         return TOKENIZER_LABEL;
       }
@@ -418,17 +409,17 @@ static uint8_t get_next_token(void)
       if (i == 1)
       {
 #if defined(VARIABLE_TYPE_STRING)
-        if (*(ptr+1) == '$')
+        if (*(tree->ptr + 1) == '$')
         {
-          nextptr++;
+          tree->nextptr++;
           return TOKENIZER_STRINGVARIABLE;
         }
 #endif
 
 #if defined(VARIABLE_TYPE_ARRAY)
-        if (*(ptr+1) == '@')
+        if (*(tree->ptr + 1) == '@')
         {
-          nextptr++;
+          tree->nextptr++;
           return TOKENIZER_ARRAYVARIABLE;
         }
 #endif
@@ -442,12 +433,12 @@ static uint8_t get_next_token(void)
 }
 /*---------------------------------------------------------------------------*/
 #if defined(VARIABLE_TYPE_STRING)
-int8_t tokenizer_stringlookahead( void )
+int8_t tokenizer_stringlookahead(struct tokenizer_data *tree)
 {
   // return 1 (true) if next 'defining' token is string not integer
-  char * saveptr = (char *)ptr;
-  char * savenextptr = (char *)nextptr;
-  uint8_t token = current_token;
+  char *saveptr = (char *)tree->ptr;
+  char *savenextptr = (char *)tree->nextptr;
+  uint8_t token = tree->current_token;
   int8_t si = -1;
 
   while (si == -1)
@@ -465,55 +456,54 @@ int8_t tokenizer_stringlookahead( void )
     else if (token > TOKENIZER_CHR$)
       si = 0; // numeric function
 
-    token = get_next_token();
+    token = tokenizer_next_token(tree);
   }
-  ptr = saveptr;
-  nextptr = savenextptr;
-  return si; 
+  tree->ptr = saveptr;
+  tree->nextptr = savenextptr;
+  return si;
 }
 #endif
 /*---------------------------------------------------------------------------*/
-void tokenizer_init(const char *program)
+void tokenizer_init(struct tokenizer_data *tree, const char *program)
 {
-  ptr = program;
-  prog = program;
-//   current_line = 1;
-  current_token = get_next_token();
+  tree->ptr = program;
+  tree->prog = program;
+  tree->current_token = tokenizer_next_token(tree);
 }
 /*---------------------------------------------------------------------------*/
-uint8_t tokenizer_token(void)
+uint8_t tokenizer_token(struct tokenizer_data *tree)
 {
-  return current_token;
+  return tree->current_token;
 }
 /*---------------------------------------------------------------------------*/
-void tokenizer_next(void)
+void tokenizer_next(struct tokenizer_data *tree)
 {
 
-  if(tokenizer_finished())
+  if (tokenizer_finished(tree))
   {
     return;
   }
 
-  ptr = nextptr;
+  tree->ptr = tree->nextptr;
 
-  while(*ptr == ' ')
+  while (*tree->ptr == ' ')
   {
-    ++ptr;
+    ++tree->ptr;
   }
 
-  current_token = get_next_token();
+  tree->current_token = tokenizer_next_token(tree);
   return;
 }
 /*---------------------------------------------------------------------------*/
 
-VARIABLE_TYPE tokenizer_num(void)
+VARIABLE_TYPE tokenizer_num(struct tokenizer_data *tree)
 {
-  uint8_t *c = (uint8_t *) ptr;
-  VARIABLE_TYPE rval=0;
+  uint8_t *c = (uint8_t *)tree->ptr;
+  VARIABLE_TYPE rval = 0;
 
   while (1)
   {
-    if (*c<'0' || *c>'9')
+    if (*c < '0' || *c > '9')
       break;
 
     rval *= 10;
@@ -524,34 +514,33 @@ VARIABLE_TYPE tokenizer_num(void)
   return rval;
 }
 
-
-VARIABLE_TYPE tokenizer_int(void)
+VARIABLE_TYPE tokenizer_int(struct tokenizer_data *tree)
 {
-  uint8_t *c = (uint8_t *) ptr;
-  VARIABLE_TYPE rval=0;
-  if ( (*c=='0') && (*(c+1)=='x' || *(c+1)=='X') )
+  uint8_t *c = (uint8_t *)tree->ptr;
+  VARIABLE_TYPE rval = 0;
+  if ((*c == '0') && (*(c + 1) == 'x' || *(c + 1) == 'X'))
   {
-    c+= 2;
+    c += 2;
     while (1)
     {
-      if (*c>='0' && *c<='9')
+      if (*c >= '0' && *c <= '9')
       {
         rval <<= 4;
         rval += (*c - '0');
         c++;
         continue;
       }
-      if ((*c>='a') && (*c<='f'))
+      if ((*c >= 'a') && (*c <= 'f'))
       {
         rval <<= 4;
         rval += (*c - 87); // 87 = 'a' - 10
         c++;
         continue;
       }
-      if ((*c>='A') && (*c<='F'))
+      if ((*c >= 'A') && (*c <= 'F'))
       {
         rval <<= 4;
-        rval += (*c - 55);// 55 = 'A' - 10
+        rval += (*c - 55); // 55 = 'A' - 10
         c++;
         continue;
       }
@@ -559,12 +548,12 @@ VARIABLE_TYPE tokenizer_int(void)
     }
     return rval;
   }
-  if ( (*c=='0') && (*(c+1)=='b' || *(c+1)=='B') )
+  if ((*c == '0') && (*(c + 1) == 'b' || *(c + 1) == 'B'))
   {
-    c+= 2;
+    c += 2;
     while (1)
     {
-      if (*c=='0' || *c=='1')
+      if (*c == '0' || *c == '1')
       {
         rval <<= 1;
         rval += (*c - '0');
@@ -576,112 +565,115 @@ VARIABLE_TYPE tokenizer_int(void)
     return rval;
   }
 
-  return tokenizer_num();
+  return tokenizer_num(tree);
 }
 
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
 /*---------------------------------------------------------------------------*/
-VARIABLE_TYPE tokenizer_float(void)
+VARIABLE_TYPE tokenizer_float(struct tokenizer_data *tree)
 {
-  return str_fixedpt((char*)ptr, nextptr-ptr, FIXEDPT_FBITS>>1);
+  return str_fixedpt((char *)tree->ptr, tree->nextptr - tree->ptr, FIXEDPT_FBITS >> 1);
 }
 #endif
 
 #if defined(VARIABLE_TYPE_STRING)
 /*---------------------------------------------------------------------------*/
-void tokenizer_string(char *dest, uint8_t len)
+void tokenizer_string(struct tokenizer_data *tree, char *dest, uint8_t len)
 {
   char *string_end, quote_char;
   uint8_t string_len;
 
-  if(tokenizer_token() != TOKENIZER_STRING)
+  if (tokenizer_token(tree) != TOKENIZER_STRING)
   {
     return;
   }
-  quote_char = *ptr;
+  quote_char = *tree->ptr;
 
   /** figure out the quote used for strings
-    * ignore escaped string-quotes
-    */
-  string_end = (char *) ptr;
+   * ignore escaped string-quotes
+   */
+  string_end = (char *)tree->ptr;
   do
   {
     string_end++;
 
     string_end = strchr(string_end, quote_char);
-    if(string_end == NULL)
+    if (string_end == NULL)
     {
       return;
     }
-  }
-  while ( *(string_end - 1) == '\\');
+  } while (*(string_end - 1) == '\\');
 
-  string_len = string_end - ptr - 1;
-  if(len < string_len)
+  string_len = string_end - tree->ptr - 1;
+  if (len < string_len)
   {
     string_len = len;
   }
-  memcpy(dest, ptr + 1, string_len);
+  memcpy(dest, tree->ptr + 1, string_len);
   dest[string_len] = 0;
   return;
 }
 #endif
 
-void tokenizer_label(char *dest, uint8_t len)
+void tokenizer_label(struct tokenizer_data *tree, char *dest, uint8_t len)
 {
-  char *string_end = (char *) nextptr;
+  char *string_end = (char *)tree->nextptr;
   uint8_t string_len;
 
-  if(tokenizer_token() != TOKENIZER_LABEL)
+  if (tokenizer_token(tree) != TOKENIZER_LABEL)
   {
     return;
   }
 
-  for (string_len=0; string_len < string_end - ptr; string_len++)
+  for (string_len = 0; string_len < string_end - tree->ptr; string_len++)
   {
-    if (  (*(ptr+string_len)=='_') ||
-             ((*(ptr+string_len)>='0') && (*(ptr+string_len)<='9')) ||
-             ((*(ptr+string_len)>='A') && (*(ptr+string_len)<='Z')) ||
-             ((*(ptr+string_len)>='a') && (*(ptr+string_len)<='z')) )
+    if ((*(tree->ptr + string_len) == '_') ||
+        ((*(tree->ptr + string_len) >= '0') && (*(tree->ptr + string_len) <= '9')) ||
+        ((*(tree->ptr + string_len) >= 'A') && (*(tree->ptr + string_len) <= 'Z')) ||
+        ((*(tree->ptr + string_len) >= 'a') && (*(tree->ptr + string_len) <= 'z')))
       continue;
     break;
   }
-  memcpy(dest, ptr, string_len);
+  if (string_len > len)
+  {
+    string_len = len;
+  }
+  memcpy(dest, tree->ptr, string_len);
   dest[string_len] = 0;
 }
 
 /*---------------------------------------------------------------------------*/
-void tokenizer_error_print(VARIABLE_TYPE token)
+void tokenizer_error_print(struct tokenizer_data *tree, VARIABLE_TYPE token)
 {
   char msg[10];
-//   if (ubasic_status.bit.isRunning == 1)
-//   {
-//     print_serial("Line ");
-//     sprintf(msg,"%d:", current_line);
-//     print_serial(msg);
-//   }
+  //   if (status.bit.isRunning == 1)
+  //   {
+  //     print_serial("Line ");
+  //     sprintf(msg,"%d:", current_line);
+  //     print_serial(msg);
+  //   }
   print_serial("Err");
-  sprintf(msg,"[%u]:", (uint8_t) token);
+  sprintf(msg, "[%u]:", (uint8_t)token);
   print_serial(msg);
-  print_serial((char*)ptr-1);
+  print_serial((char *)tree->ptr - 1);
   print_serial("\n");
 }
 /*---------------------------------------------------------------------------*/
-uint8_t tokenizer_finished(void)
+uint8_t tokenizer_finished(struct tokenizer_data *tree)
 {
-  if (ubasic_status.bit.isRunning == 1)
-    return ((*ptr == 0) || (current_token == TOKENIZER_ENDOFINPUT));
+  if (status.bit.isRunning == 1)
+    return ((*tree->ptr == 0) || (tree->current_token == TOKENIZER_ENDOFINPUT));
 
-  return ((*ptr == 0) || (current_token == TOKENIZER_ENDOFINPUT) || (ubasic_status.bit.Error == 1));
+  return ((*tree->ptr == 0) || (tree->current_token == TOKENIZER_ENDOFINPUT) || (status.bit.Error == 1));
 }
 /*---------------------------------------------------------------------------*/
-uint8_t tokenizer_variable_num(void)
+uint8_t tokenizer_variable_num(struct tokenizer_data *tree)
 {
-  if ((*ptr >= 'a' && *ptr <= 'z'))
-    return (((uint8_t) *ptr) - 'a');
+  if ((*tree->ptr >= 'a' && *tree->ptr <= 'z'))
+    return (((uint8_t)*tree->ptr) - 'a');
 
-  if ((*ptr >= 'A' && *ptr <= 'Z'))
-    return (((uint8_t) *ptr) - 'A');
+  if ((*tree->ptr >= 'A' && *tree->ptr <= 'Z'))
+    return (((uint8_t)*tree->ptr) - 'A');
 
   return 0xff;
 }
@@ -692,18 +684,16 @@ uint8_t tokenizer_variable_num(void)
 //   return current_line;
 // }
 
-uint16_t  tokenizer_save_offset(void)
+uint16_t tokenizer_save_offset(struct tokenizer_data *tree)
 {
-  return (ptr - prog);
+  return (tree->ptr - tree->prog);
 }
 
-void      tokenizer_jump_offset(uint16_t offset)
+void tokenizer_jump_offset(struct tokenizer_data *tree, uint16_t offset)
 {
-  ptr = (prog + offset);
-  current_token = get_next_token();
-  while ( (current_token==TOKENIZER_EOL) && !tokenizer_finished() )
-    tokenizer_next();
+  tree->ptr = (tree->prog + offset);
+  tree->current_token = tokenizer_next_token(tree);
+  while ((tree->current_token == TOKENIZER_EOL) && !tokenizer_finished(tree))
+    tokenizer_next(tree);
   return;
 }
-
-
