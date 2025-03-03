@@ -37,13 +37,11 @@
 #include "config.h"
 #include "tokenizer.h"
 
-extern volatile _Status status;
-
 #define MAX_NUMLEN 8
 
 struct keyword_token
 {
-  char *keyword;
+  const char *keyword;
   uint8_t token;
 };
 
@@ -436,8 +434,8 @@ static uint8_t tokenizer_next_token(struct tokenizer_data *tree)
 int8_t tokenizer_stringlookahead(struct tokenizer_data *tree)
 {
   // return 1 (true) if next 'defining' token is string not integer
-  char *saveptr = (char *)tree->ptr;
-  char *savenextptr = (char *)tree->nextptr;
+  const char *saveptr = tree->ptr;
+  const char *savenextptr = tree->nextptr;
   uint8_t token = tree->current_token;
   int8_t si = -1;
 
@@ -498,7 +496,7 @@ void tokenizer_next(struct tokenizer_data *tree)
 
 VARIABLE_TYPE tokenizer_num(struct tokenizer_data *tree)
 {
-  uint8_t *c = (uint8_t *)tree->ptr;
+  const char *c = tree->ptr;
   VARIABLE_TYPE rval = 0;
 
   while (1)
@@ -516,7 +514,7 @@ VARIABLE_TYPE tokenizer_num(struct tokenizer_data *tree)
 
 VARIABLE_TYPE tokenizer_int(struct tokenizer_data *tree)
 {
-  uint8_t *c = (uint8_t *)tree->ptr;
+  const char *c = tree->ptr;
   VARIABLE_TYPE rval = 0;
   if ((*c == '0') && (*(c + 1) == 'x' || *(c + 1) == 'X'))
   {
@@ -572,7 +570,7 @@ VARIABLE_TYPE tokenizer_int(struct tokenizer_data *tree)
 /*---------------------------------------------------------------------------*/
 VARIABLE_TYPE tokenizer_float(struct tokenizer_data *tree)
 {
-  return str_fixedpt((char *)tree->ptr, tree->nextptr - tree->ptr, FIXEDPT_FBITS >> 1);
+  return str_fixedpt(tree->ptr, tree->nextptr - tree->ptr, FIXEDPT_FBITS >> 1);
 }
 #endif
 
@@ -580,7 +578,8 @@ VARIABLE_TYPE tokenizer_float(struct tokenizer_data *tree)
 /*---------------------------------------------------------------------------*/
 void tokenizer_string(struct tokenizer_data *tree, char *dest, uint8_t len)
 {
-  char *string_end, quote_char;
+  const char *string_end;
+  char quote_char;
   uint8_t string_len;
 
   if (tokenizer_token(tree) != TOKENIZER_STRING)
@@ -592,7 +591,7 @@ void tokenizer_string(struct tokenizer_data *tree, char *dest, uint8_t len)
   /** figure out the quote used for strings
    * ignore escaped string-quotes
    */
-  string_end = (char *)tree->ptr;
+  string_end = tree->ptr;
   do
   {
     string_end++;
@@ -617,7 +616,7 @@ void tokenizer_string(struct tokenizer_data *tree, char *dest, uint8_t len)
 
 void tokenizer_label(struct tokenizer_data *tree, char *dest, uint8_t len)
 {
-  char *string_end = (char *)tree->nextptr;
+  const char *string_end = tree->nextptr;
   uint8_t string_len;
 
   if (tokenizer_token(tree) != TOKENIZER_LABEL)
@@ -655,17 +654,15 @@ void tokenizer_error_print(struct tokenizer_data *tree, VARIABLE_TYPE token)
   print_serial("Err");
   sprintf(msg, "[%u]:", (uint8_t)token);
   print_serial(msg);
-  print_serial((char *)tree->ptr - 1);
+  print_serial(tree->ptr - 1);
   print_serial("\n");
 }
 /*---------------------------------------------------------------------------*/
-uint8_t tokenizer_finished(struct tokenizer_data *tree)
+bool tokenizer_finished(struct tokenizer_data *tree)
 {
-  if (status.bit.isRunning == 1)
-    return ((*tree->ptr == 0) || (tree->current_token == TOKENIZER_ENDOFINPUT));
-
-  return ((*tree->ptr == 0) || (tree->current_token == TOKENIZER_ENDOFINPUT) || (status.bit.Error == 1));
+  return ((*tree->ptr == 0) || (tree->current_token == TOKENIZER_ENDOFINPUT));
 }
+
 /*---------------------------------------------------------------------------*/
 uint8_t tokenizer_variable_num(struct tokenizer_data *tree)
 {

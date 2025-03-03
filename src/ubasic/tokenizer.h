@@ -39,7 +39,8 @@
 
 #ifndef __TOKENIZER_H__
 #define __TOKENIZER_H__
-
+#include <stdbool.h>
+#include <stdint.h>
 #include "config.h"
 
 enum
@@ -191,7 +192,7 @@ VARIABLE_TYPE tokenizer_float(struct tokenizer_data *data);
 
 uint8_t tokenizer_variable_num(struct tokenizer_data *data);
 
-uint8_t tokenizer_finished(struct tokenizer_data *data);
+bool tokenizer_finished(struct tokenizer_data *data);
 void tokenizer_error_print(struct tokenizer_data *data, VARIABLE_TYPE token);
 
 #if defined(VARIABLE_TYPE_STRING)

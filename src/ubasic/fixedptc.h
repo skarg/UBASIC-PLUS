@@ -60,7 +60,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Marijan Kostrun, added function str_fixedpt(char*,int, int)
  */
 #ifndef FIXEDPT_BITS
@@ -140,10 +140,10 @@ fixedpt_div(fixedpt A, fixedpt B)
 /**
   * Convert decimal string to a fixedpt number up to specified
   * number of decimal places.
-  * 
+  *
   */
 #include <stdlib.h>
-static inline fixedpt str_fixedpt(char * p, uint8_t plen, uint8_t decimal_places)
+static inline fixedpt str_fixedpt(const char * p, uint8_t plen, uint8_t decimal_places)
 {
   uint8_t i_minus = *p == '-' ? 1 : 0;
 
@@ -151,7 +151,7 @@ static inline fixedpt str_fixedpt(char * p, uint8_t plen, uint8_t decimal_places
 
   // find '.': the number is float because it has at least one
   // digit past decimal point
-  char *s = p;
+  const char *s = p;
   while ( (*s != '.') && ((s-p)<plen) )
   {
     s++;
@@ -293,7 +293,7 @@ static inline fixedpt fixedpt_sqrt(fixedpt A)
 }
 
 
-/* Returns the sine of the given fixedpt number. 
+/* Returns the sine of the given fixedpt number.
  * Note: the loss of precision is extraordinary! */
 static inline fixedpt fixedpt_sin(fixedpt fp)
 {
@@ -307,7 +307,7 @@ static inline fixedpt fixedpt_sin(fixedpt fp)
 	fp %= 2 * FIXEDPT_PI;
 	if (fp < 0)
 		fp = FIXEDPT_PI * 2 + fp;
-	if ((fp > FIXEDPT_HALF_PI) && (fp <= FIXEDPT_PI)) 
+	if ((fp > FIXEDPT_HALF_PI) && (fp <= FIXEDPT_PI))
 		fp = FIXEDPT_PI - fp;
 	else if ((fp > FIXEDPT_PI) && (fp <= (FIXEDPT_PI + FIXEDPT_HALF_PI))) {
 		fp = fp - FIXEDPT_PI;
@@ -420,7 +420,7 @@ static inline fixedpt fixedpt_ln(fixedpt x)
 	return (fixedpt_mul(LN2, (log2 << FIXEDPT_FBITS)) + f
 	    - fixedpt_mul(s, f - R));
 }
-	
+
 
 /* Returns the logarithm of the given base of the given fixedpt number */
 static inline fixedpt fixedpt_log(fixedpt x, fixedpt base)

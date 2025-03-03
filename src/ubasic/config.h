@@ -33,37 +33,36 @@
 #include <ctype.h>
 #include <stdio.h>
 
-
 //
 // Undef it all
 //
 
 /* Storage and arithmetics */
-#undef  VARIABLE_STORAGE_INT16
-#undef  VARIABLE_STORAGE_INT32
-#undef  VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8
-#undef  VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10
-#undef  VARIABLE_TYPE_STRING
-#undef  VARIABLE_TYPE_ARRAY
-#undef  UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS
+#undef VARIABLE_STORAGE_INT16
+#undef VARIABLE_STORAGE_INT32
+#undef VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8
+#undef VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10
+#undef VARIABLE_TYPE_STRING
+#undef VARIABLE_TYPE_ARRAY
+#undef UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS
 
 /* Microcontroller related functionality */
-#undef  UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR
-#undef  UBASIC_SCRIPT_HAVE_PWM_CHANNELS
-#undef  UBASIC_SCRIPT_HAVE_GPIO
-#undef  UBASIC_SCRIPT_HAVE_TICTOC
-#undef  UBASIC_SCRIPT_HAVE_SLEEP
-#undef  UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS
-#undef  UBASIC_SCRIPT_PRINT_TO_SERIAL
-#undef  UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL
-#undef  UBASIC_SCRIPT_HAVE_ANALOG_READ
-#undef  UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH
+#undef UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR
+#undef UBASIC_SCRIPT_HAVE_PWM_CHANNELS
+#undef UBASIC_SCRIPT_HAVE_GPIO
+#undef UBASIC_SCRIPT_HAVE_TICTOC
+#undef UBASIC_SCRIPT_HAVE_SLEEP
+#undef UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS
+#undef UBASIC_SCRIPT_PRINT_TO_SERIAL
+#undef UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL
+#undef UBASIC_SCRIPT_HAVE_ANALOG_READ
+#undef UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH
 
 /**
-  *
-  *   UBASIC-PLUS: Start
-  *
-  */
+ *
+ *   UBASIC-PLUS: Start
+ *
+ */
 /* default storage for all numeric values */
 #define VARIABLE_STORAGE_INT32
 
@@ -83,25 +82,25 @@
 #define VARIABLE_TYPE_STRING
 
 /* can go to sleep: leave UBASIC for other stuff while waiting for timer to expire */
-#define  UBASIC_SCRIPT_HAVE_SLEEP
+#define UBASIC_SCRIPT_HAVE_SLEEP
 
 /* have microcontroller support for PWM: specify how many channels */
-#define  UBASIC_SCRIPT_HAVE_PWM_CHANNELS  (4)
+#define UBASIC_SCRIPT_HAVE_PWM_CHANNELS (4)
 
 /* have internal timer channels available through rlab-like toc(ch) functions */
-#define  UBASIC_SCRIPT_HAVE_TICTOC
+#define UBASIC_SCRIPT_HAVE_TICTOC
 
 /* support for random number generator by micro-controller */
-#define  UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR
+#define UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR
 
 /* support for direct access to pin inputs and ooutputs */
-#define  UBASIC_SCRIPT_HAVE_GPIO_CHANNELS
+#define UBASIC_SCRIPT_HAVE_GPIO_CHANNELS
 
 /* support flags in BASIC that change on hardware events:
     for STM32F0XX nucleo and discovery boards
    source of the events is push-button
 */
-#define  UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS
+#define UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS
 
 /* have a standard print to serial console function */
 #define UBASIC_SCRIPT_PRINT_TO_SERIAL
@@ -110,20 +109,18 @@
 #define UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL
 
 /* support for analog inputs */
-#define  UBASIC_SCRIPT_HAVE_ANALOG_READ
+#define UBASIC_SCRIPT_HAVE_ANALOG_READ
 
 /* Demo scripts are huge. Do we need them? */
-#define  UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS
+#define UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS
 
 /* support for storing/recalling variables in/from flash memory */
 #define UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH
 /**
-  *
-  *   UBASIC-PLUS: End
-  *
-  */
-
-
+ *
+ *   UBASIC-PLUS: End
+ *
+ */
 
 /*
  * Selectively load header files based on the ocnfiguration above.
@@ -133,45 +130,45 @@
  */
 #if defined(VARIABLE_STORAGE_INT32)
 
-  #define VARIABLE_TYPE int32_t
+#define VARIABLE_TYPE int32_t
 
-  #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
+#if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
 
-    #define FIXEDPT_BITS 32
+#define FIXEDPT_BITS 32
 
-    #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8)
-      #define FIXEDPT_WBITS 24
-    #elif defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
-      #define FIXEDPT_WBITS 22
-    #else
-      #error "Only 24.8 and 22.10 floats are currently supported"
-    #endif
-
-    #include "fixedptc.h"
-
-  #endif
-
-#elif defined(VARIABLE_STORAGE_INT16)
-
-  #define VARIABLE_TYPE int16_t
-  #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
-    #error "Fixed Point Floats are Supported for 32bit Storage Only!"
-  #endif
-
+#if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8)
+#define FIXEDPT_WBITS 24
+#elif defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
+#define FIXEDPT_WBITS 22
 #else
+#error "Only 24.8 and 22.10 floats are currently supported"
+#endif
 
-  #error "Only INT32 and INT16 variable types are supported."
+#include "fixedptc.h"
 
 #endif
 
-#define MAX_STRINGLEN     40
-#define MAX_LABEL_LEN     10
+#elif defined(VARIABLE_STORAGE_INT16)
+
+#define VARIABLE_TYPE int16_t
+#if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
+#error "Fixed Point Floats are Supported for 32bit Storage Only!"
+#endif
+
+#else
+
+#error "Only INT32 and INT16 variable types are supported."
+
+#endif
+
+#define MAX_STRINGLEN 40
+#define MAX_LABEL_LEN 10
 
 #if defined(VARIABLE_TYPE_STRING)
-#define MAX_STRINGVARLEN  64
-#define MAX_BUFFERLEN     256
-#define GBGCHECK          100
-#define MAX_SVARNUM       26
+#define MAX_STRINGVARLEN 64
+#define MAX_BUFFERLEN 256
+#define GBGCHECK 100
+#define MAX_SVARNUM 26
 #endif
 
 // What it means to support PWM:
@@ -189,56 +186,53 @@ void analogWrite(uint8_t ch, int16_t dutycycle);
 //        toc(n)
 //    returns how many ms has passed since tic(n) was called.
 #if defined(UBASIC_SCRIPT_HAVE_TICTOC)
-extern volatile uint32_t ubasic_script_tic0_ms;
-extern volatile uint32_t ubasic_script_tic1_ms;
-extern volatile uint32_t ubasic_script_tic2_ms;
-extern volatile uint32_t ubasic_script_tic3_ms;
-extern volatile uint32_t ubasic_script_tic4_ms;
-extern volatile uint32_t ubasic_script_tic5_ms;
+void timer_tic(uint8_t ch);
+uint32_t timer_toc(uint8_t ch);
 #endif
-
 
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
-extern volatile uint8_t hw_event;
+int8_t hw_event(uint8_t bit);
+void hw_event_clear(uint8_t bit);
+void hw_event_set(uint8_t bit);
 #endif
-
 
 #if defined(UBASIC_SCRIPT_HAVE_GPIO_CHANNELS)
-void    pinMode(uint8_t ch, int8_t mode, uint8_t freq);
-int8_t  digitalWrite(uint8_t ch, uint8_t PinState);
-int8_t  digitalRead(uint8_t ch);
+void pinMode(uint8_t ch, int8_t mode, uint8_t freq);
+int8_t digitalWrite(uint8_t ch, uint8_t PinState);
+int8_t digitalRead(uint8_t ch);
 #endif
 
-
 #if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
-void print_serial(char * msg);
+void print_serial(const char *msg);
+void print_serial_n(const char *msg, uint16_t n);
+void print_numbered_lines(const char *script);
 #else
-void print_serial(char * msg){;}
+void print_serial(const char *msg) { ; }
+void print_serial_n(const char *msg, uint16_t n) { ; }
+void print_numbered_lines(const char *script) { ; }
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
-#define UBASIC_SERIAL_INPUT_MS  50
+#define UBASIC_SERIAL_INPUT_MS 50
 uint8_t serial_input_available();
-uint8_t serial_input (char * buffer, uint8_t len);
-extern volatile uint32_t ubasic_script_wait_for_input_ms;
-extern uint8_t ubasic_script_wait_for_input_expired;
+uint8_t serial_input(char *buffer, uint8_t len);
+void timer_input_wait(uint32_t ms);
+uint32_t timer_input_remaining(void);
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR) || defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
-uint32_t  RandomUInt32(uint8_t size);
+uint32_t RandomUInt32(uint8_t size);
 #if defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
-void    analogReadConfig(uint8_t sampletime, uint8_t nreads);
+void analogReadConfig(uint8_t sampletime, uint8_t nreads);
 int16_t analogRead(uint8_t channel);
 #endif /* UBASIC_SCRIPT_HAVE_ANALOG_READ */
 #endif /* UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR || UBASIC_SCRIPT_HAVE_ANALOG_READ */
 
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
-void    EE_Init(void);
-void    EE_WriteVariable(uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr);
-void    EE_ReadVariable(uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen);
-void    EE_DumpFlash(void);
+void EE_Init(void);
+void EE_WriteVariable(uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr);
+void EE_ReadVariable(uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen);
+void EE_DumpFlash(void);
 #endif
-
-
 
 #endif /* #ifndef _CONFIG_H_ */

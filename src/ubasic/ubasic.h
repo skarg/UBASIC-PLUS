@@ -44,6 +44,7 @@
 #define __UBASIC_H__
 
 #include "config.h"
+#include "platform.h"
 #include "tokenizer.h"
 
 #define status_RUN   0x80
