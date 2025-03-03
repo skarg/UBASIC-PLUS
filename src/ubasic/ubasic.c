@@ -2294,8 +2294,6 @@ static bool ubasic_program_finished(struct ubasic_data *data)
 /*---------------------------------------------------------------------------*/
 void ubasic_run_program(struct ubasic_data *data)
 {
-  struct tokenizer_data *tree = &data->tree;
-
   if (data->status.bit.isRunning == 0)
   {
     return;
@@ -2383,7 +2381,6 @@ uint8_t ubasic_waiting_for_input(struct ubasic_data *data)
 
 uint8_t ubasic_finished(struct ubasic_data *data)
 {
-  struct tokenizer_data *tree = &data->tree;
   return (ubasic_program_finished(data) || data->status.bit.isRunning == 0);
 }
 
