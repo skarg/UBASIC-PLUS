@@ -50,7 +50,7 @@
 #undef UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR
 #undef UBASIC_SCRIPT_HAVE_PWM_CHANNELS
 #undef UBASIC_SCRIPT_HAVE_GPIO
-#undef UBASIC_SCRIPT_HAVE_TICTOC
+#undef UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS
 #undef UBASIC_SCRIPT_HAVE_SLEEP
 #undef UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS
 #undef UBASIC_SCRIPT_PRINT_TO_SERIAL
@@ -88,7 +88,7 @@
 #define UBASIC_SCRIPT_HAVE_PWM_CHANNELS (4)
 
 /* have internal timer channels available through rlab-like toc(ch) functions */
-#define UBASIC_SCRIPT_HAVE_TICTOC
+#define UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS (8)
 
 /* support for random number generator by micro-controller */
 #define UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR
@@ -186,14 +186,9 @@ int16_t Analog_Output_Read(uint8_t ch);
 //    sets the n-th variable to 0, while
 //        toc(n)
 //    returns how many ms has passed since tic(n) was called.
-#if defined(UBASIC_SCRIPT_HAVE_TICTOC)
-void timer_tic(uint8_t ch);
-int32_t timer_toc(uint8_t ch);
-#endif
-
-#if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-void timer_sleep(int32_t ms);
-int32_t timer_sleeping(void);
+#if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || defined(UBASIC_SCRIPT_HAVE_SLEEP)
+uint32_t timer_now(void);
+uint32_t timer_since(uint32_t start);
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
@@ -222,8 +217,6 @@ void print_numbered_lines(const char *script) { ; }
 #define UBASIC_SERIAL_INPUT_MS 50
 uint8_t serial_input_available();
 uint8_t serial_input(char *buffer, uint8_t len);
-void timer_input_wait(int32_t ms);
-int32_t timer_input_remaining(void);
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR) || defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)

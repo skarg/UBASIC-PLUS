@@ -87,6 +87,11 @@ struct ubasic_while_state
 #define MAX_GOSUB_STACK_DEPTH 10
 #define MAX_IF_STACK_DEPTH 4
 
+struct ubasic_timer_wait {
+    uint32_t start;
+    uint32_t duration;
+};
+
 struct ubasic_data
 {
     UBASIC_STATUS status;
@@ -131,6 +136,13 @@ struct ubasic_data
 #if defined(VARIABLE_TYPE_ARRAY)
     VARIABLE_TYPE input_array_index;
 #endif
+#if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
+    uint32_t tic_toc_timer[UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS];
+#endif
+#if defined(UBASIC_SCRIPT_HAVE_SLEEP)
+    struct ubasic_timer_wait input_wait_timer;
+    struct ubasic_timer_wait sleep_timer;
+    #endif
 };
 
 void ubasic_load_program(struct ubasic_data *data, const char *program);

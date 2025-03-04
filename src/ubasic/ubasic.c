@@ -55,6 +55,100 @@ static void statement(struct ubasic_data *data);
 static VARIABLE_TYPE recall_statement(struct ubasic_data *data);
 #endif
 
+#if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
+static void timer_tic(struct ubasic_data *data, uint8_t ch)
+{
+  if (ch > UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
+  {
+    return;
+  }
+  data->tic_toc_timer[ch] = timer_now();
+}
+
+static int32_t timer_toc(struct ubasic_data *data, uint8_t ch)
+{
+  uint32_t elapsed;
+  if (ch > UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
+  {
+    return 0;
+  }
+  elapsed = timer_since(data->tic_toc_timer[ch]);
+  if (elapsed > INT32_MAX)
+  {
+    return INT32_MAX;
+  }
+  return (int32_t)elapsed;
+}
+#endif
+
+#if defined(UBASIC_SCRIPT_HAVE_SLEEP)
+static void timer_sleep(struct ubasic_data *data, int32_t ms)
+{
+  data->sleep_timer.duration = ms;
+  data->sleep_timer.start = timer_now();
+}
+
+static int32_t timer_sleeping(struct ubasic_data *data)
+{
+  uint32_t remaining;
+  uint32_t elapsed;
+
+  if (data->sleep_timer.duration > 0)
+  {
+    elapsed = timer_since(data->sleep_timer.start);
+    if (elapsed < data->sleep_timer.duration)
+    {
+      remaining = data->sleep_timer.duration - elapsed;
+      if (remaining > INT32_MAX)
+      {
+        return INT32_MAX;
+      }
+      return (int32_t)remaining;
+    }
+    else
+    {
+      data->sleep_timer.duration = 0;
+    }
+  }
+
+  return 0;
+}
+#endif
+
+#if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
+static void timer_input_wait(struct ubasic_data *data, int32_t ms)
+{
+  data->input_wait_timer.duration = ms;
+  data->input_wait_timer.start = timer_now();
+}
+
+static int32_t timer_input_remaining(struct ubasic_data *data)
+{
+  uint32_t remaining;
+  uint32_t elapsed;
+
+  if (data->input_wait_timer.duration > 0)
+  {
+    elapsed = timer_since(data->input_wait_timer.start);
+    if (elapsed < data->input_wait_timer.duration)
+    {
+      remaining = data->input_wait_timer.duration - elapsed;
+      if (remaining > INT32_MAX)
+      {
+        return INT32_MAX;
+      }
+      return (int32_t)remaining;
+    }
+    else
+    {
+      data->input_wait_timer.duration = 0;
+    }
+  }
+
+  return 0;
+}
+#endif
+
 /*---------------------------------------------------------------------------*/
 void ubasic_clear_variables(struct ubasic_data *data)
 {
@@ -593,7 +687,7 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
     r = ~relation(data);
     break;
 
-#if defined(UBASIC_SCRIPT_HAVE_TICTOC)
+#if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
   case TOKENIZER_TOC:
     accept(tree, TOKENIZER_TOC);
     accept(tree, TOKENIZER_LEFTPAREN);
@@ -601,7 +695,7 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_toint(r);
 #endif
-    r = timer_toc(r);
+    r = timer_toc(data, r);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
     accept(tree, TOKENIZER_RIGHTPAREN);
@@ -1137,7 +1231,7 @@ static void pwm_statement(struct ubasic_data *data)
 
   if (j >= 1 && j <= UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
   {
-    Analog_Output_Write(j-1, r);
+    Analog_Output_Write(j - 1, r);
   }
 
   accept_cr(tree);
@@ -1763,13 +1857,13 @@ static void sleep_statement(struct ubasic_data *data)
   {
     r = 0;
   }
-  timer_sleep(r);
+  timer_sleep(data, r);
 
   accept_cr(tree);
 }
 #endif
 
-#if defined(UBASIC_SCRIPT_HAVE_TICTOC)
+#if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
 static void tic_statement(struct ubasic_data *data)
 {
   struct tokenizer_data *tree = &data->tree;
@@ -1780,7 +1874,7 @@ static void tic_statement(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
   f = fixedpt_toint(f);
 #endif
-  timer_tic(f);
+  timer_tic(data, f);
   accept(tree, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
 }
@@ -1849,7 +1943,7 @@ static void input_statement_wait(struct ubasic_data *data)
 #endif
     if (r > 0)
     {
-      timer_input_wait(r);
+      timer_input_wait(data, r);
     }
   }
 
@@ -2069,7 +2163,6 @@ static void store_statement(struct ubasic_data *data)
   uint8_t *dataptr;
   uint8_t datalen;
 
-
   accept(tree, TOKENIZER_STORE);
   accept(tree, TOKENIZER_LEFTPAREN);
 
@@ -2204,7 +2297,7 @@ static void statement(struct ubasic_data *data)
     break;
 #endif
 
-#if defined(UBASIC_SCRIPT_HAVE_TICTOC)
+#if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
   case TOKENIZER_TIC:
     tic_statement(data);
     break;
@@ -2282,7 +2375,8 @@ static bool ubasic_program_finished(struct ubasic_data *data)
 {
   struct tokenizer_data *tree = &data->tree;
 
-  if (data->status.bit.isRunning) {
+  if (data->status.bit.isRunning)
+  {
     return tokenizer_finished(tree);
   }
 
@@ -2301,7 +2395,7 @@ void ubasic_run_program(struct ubasic_data *data)
     return;
   }
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-  if (timer_sleeping() > 0)
+  if (timer_sleeping(data) > 0)
     return;
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
@@ -2309,7 +2403,7 @@ void ubasic_run_program(struct ubasic_data *data)
   {
     if (serial_input_available() == 0)
     {
-      if (timer_input_remaining() > 0)
+      if (timer_input_remaining(data) > 0)
         return;
     }
     serial_input_completed(data);
@@ -2352,7 +2446,7 @@ uint8_t ubasic_execute_statement(struct ubasic_data *data, char *stmt)
     {
       if (serial_input_available() == 0)
       {
-        if (timer_input_remaining() > 0)
+        if (timer_input_remaining(data) > 0)
           continue;
       }
       serial_input_completed(data);
@@ -2360,7 +2454,7 @@ uint8_t ubasic_execute_statement(struct ubasic_data *data, char *stmt)
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-    while (timer_sleeping() > 0)
+    while (timer_sleeping(data) > 0)
     {
       /* FIXME: maybe just a return until the sleep is over? */
     }

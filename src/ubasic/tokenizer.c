@@ -67,7 +67,7 @@ static const struct keyword_token keywords[] =
         {"then", TOKENIZER_THEN},
         {"else", TOKENIZER_ELSE},
         {"endif", TOKENIZER_ENDIF},
-#if defined(UBASIC_SCRIPT_HAVE_TICTOC)
+#if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
         {"toc", TOKENIZER_TOC},
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
@@ -89,7 +89,7 @@ static const struct keyword_token keywords[] =
 #if defined(VARIABLE_TYPE_ARRAY)
         {"dim ", TOKENIZER_DIM},
 #endif
-#if defined(UBASIC_SCRIPT_HAVE_TICTOC)
+#if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
         {"tic", TOKENIZER_TIC},
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)

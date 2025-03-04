@@ -272,17 +272,19 @@ end"};
 /* Private variables ---------------------------------------------------------*/
 static char script[UBASIC_SCRIPT_SIZE_MAX];
 static char statement[UBASIC_STATEMENT_SIZE_MAX];
-static uint8_t cli_state = UBASIC_CLI_IDLE;
+static uint8_t cli_state = UBASIC_CLI_INIT;
 static struct ubasic_data UBasic_Program;
 
 void ubasic_cli(void)
 {
   struct ubasic_data *data = &UBasic_Program;
 
+  if (cli_state == UBASIC_CLI_INIT)
+  {
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
-  EE_Init();
+    EE_Init();
 #endif
-
+  }
   if ((cli_state == UBASIC_CLI_LOADED) || (cli_state == UBASIC_CLI_RUNNING))
   {
     ubasic_run_program(data);
@@ -318,12 +320,12 @@ void ubasic_cli(void)
       if (strstr(statement, "help"))
       {
         print_serial("Commands: help, run, cat, prog, save, edit");
-        #if defined(UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS)
+#if defined(UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS)
         print_serial(", demo 1-9");
-        #endif
-        #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
+#endif
+#if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
         print_serial(", flash");
-        #endif
+#endif
         print_serial("\n>");
         return;
       }
