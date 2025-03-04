@@ -99,8 +99,10 @@ for i = 1 to 2;\
   k = sqrt(2*j) + ln(4*i) + cos(i+j) + sin(j);\
   println 'k=' k;\
 next i;\
-:repeat \
-  if (toc(1)<=300) then goto repeat;\
+println 'math duration=' toc(1);\
+tic(2);\
+sleep(0.3);\
+println 'sleep(0.3)=' toc(2);\
 for i = 1 to 2;\
 println 'ran(' i ')=' ran;\
 next i;\
@@ -140,18 +142,24 @@ println 'Demo 3 Completed';\
 end;",
 
     "\
-println 'Demo 4 - Input with timeouts';\
+println 'Demo 4 - Input 5x with 5s timeouts';\
+tic(1);\
 dim a@(5);\
 for i = 1 to 5;\
   print '?';\
-  input a@(i),10000;\
+  input a@(i),5000;\
 next i;\
 println 'end of input';\
 for i = 1 to 5;\
   println 'a(' i ') = ' a@(i);\
 next i;\
+println 'duration=' toc(1);\
+println 'Sleeping for 0.5s';\
+tic(2);\
+sleep(0.5);\
+println 'sleep(0.5)=' toc(2);\
 println 'Demo 4 Completed';\
-end",
+end;",
 
     "\
 println 'Demo 5 - analog inputs and arrays';\

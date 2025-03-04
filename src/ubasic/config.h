@@ -187,7 +187,12 @@ void analogWrite(uint8_t ch, int16_t dutycycle);
 //    returns how many ms has passed since tic(n) was called.
 #if defined(UBASIC_SCRIPT_HAVE_TICTOC)
 void timer_tic(uint8_t ch);
-uint32_t timer_toc(uint8_t ch);
+int32_t timer_toc(uint8_t ch);
+#endif
+
+#if defined(UBASIC_SCRIPT_HAVE_SLEEP)
+void timer_sleep(int32_t ms);
+int32_t timer_sleeping(void);
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
@@ -216,8 +221,8 @@ void print_numbered_lines(const char *script) { ; }
 #define UBASIC_SERIAL_INPUT_MS 50
 uint8_t serial_input_available();
 uint8_t serial_input(char *buffer, uint8_t len);
-void timer_input_wait(uint32_t ms);
-uint32_t timer_input_remaining(void);
+void timer_input_wait(int32_t ms);
+int32_t timer_input_remaining(void);
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR) || defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)

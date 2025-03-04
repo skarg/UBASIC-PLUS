@@ -1746,6 +1746,7 @@ static void end_statement(struct ubasic_data *data)
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
 static void sleep_statement(struct ubasic_data *data)
 {
+  VARIABLE_TYPE r;
   struct tokenizer_data *tree = &data->tree;
 
   accept(tree, TOKENIZER_SLEEP);
@@ -1753,15 +1754,16 @@ static void sleep_statement(struct ubasic_data *data)
   if (f > 0)
   {
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
-    data->sleeping_ms = fixedpt_toint(f * 1000);
+    r = fixedpt_toint(f * 1000);
 #else
-    data->sleeping_ms = (uint32_t)f;
+    r = (uint32_t)f;
 #endif
   }
   else
   {
-    data->sleeping_ms = 0;
+    r = 0;
   }
+  timer_sleep(r);
 
   accept_cr(tree);
 }
@@ -2299,7 +2301,7 @@ void ubasic_run_program(struct ubasic_data *data)
     return;
   }
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-  if (data->sleeping_ms)
+  if (timer_sleeping() > 0)
     return;
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
@@ -2358,7 +2360,7 @@ uint8_t ubasic_execute_statement(struct ubasic_data *data, char *stmt)
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-    while (data->sleeping_ms)
+    while (timer_sleeping() > 0)
     {
       /* FIXME: maybe just a return until the sleep is over? */
     }

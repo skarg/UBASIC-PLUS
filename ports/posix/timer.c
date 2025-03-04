@@ -10,15 +10,16 @@
 static struct timespec Start;
 static bool Initialized;
 #ifndef CONFIG_UBASIC_TIMER_TIC_TOC_MAX
-#define CONFIG_UBASIC_TIMER_TIC_TOC_MAX 8
+#define CONFIG_UBASIC_TIMER_TIC_TOC_MAX 128
 #endif
 static uint32_t Basic_Timer[CONFIG_UBASIC_TIMER_TIC_TOC_MAX];
 
-static struct timer_wait {
+struct timer_wait {
     uint32_t start;
     uint32_t duration;
-} Input_Wait_Timer;
-
+};
+static struct timer_wait Input_Wait_Timer;
+static struct timer_wait Sleep_Timer;
 
 /**
  * @brief Retrieves the system time, in milliseconds.
@@ -32,8 +33,8 @@ static uint32_t timer_now(void)
     clock_gettime(CLOCK_MONOTONIC, &now);
     if (Initialized)
     {
-        ticks = (now.tv_sec - Start.tv_sec) * 1000UL +
-                (now.tv_nsec - Start.tv_nsec) / 1000000UL;
+        ticks = (now.tv_sec - Start.tv_sec) * 1000L +
+                (now.tv_nsec - Start.tv_nsec) / 1000000L;
     }
     else
     {
@@ -54,7 +55,6 @@ static uint32_t timer_now(void)
 static uint32_t timer_since(uint32_t start)
 {
     return timer_now() - start;
-    return 0;
 }
 
 void timer_tic(uint8_t ch)
@@ -65,25 +65,69 @@ void timer_tic(uint8_t ch)
     Basic_Timer[ch] = timer_now();
 }
 
-uint32_t timer_toc(uint8_t ch)
+int32_t timer_toc(uint8_t ch)
 {
+    uint32_t elapsed;
     if (ch > CONFIG_UBASIC_TIMER_TIC_TOC_MAX) {
         return 0;
     }
-    return timer_since(Basic_Timer[ch]);
+    elapsed = timer_since(Basic_Timer[ch]);
+    if (elapsed > INT32_MAX) {
+        return INT32_MAX;
+    }
+    return (int32_t)elapsed;
 }
 
-void timer_input_wait(uint32_t ms)
+void timer_input_wait(int32_t ms)
 {
     Input_Wait_Timer.duration = ms;
     Input_Wait_Timer.start = timer_now();
 }
 
-uint32_t timer_input_remaining(void)
+int32_t timer_input_remaining(void)
 {
-    uint32_t elapsed = timer_since(Input_Wait_Timer.start);
-    if (elapsed < Input_Wait_Timer.duration) {
-        return Input_Wait_Timer.duration - elapsed;
+    uint32_t remaining;
+    uint32_t elapsed;
+
+    if (Input_Wait_Timer.duration > 0) {
+        elapsed = timer_since(Input_Wait_Timer.start);
+        if (elapsed < Input_Wait_Timer.duration) {
+            remaining = Input_Wait_Timer.duration - elapsed;
+            if (remaining > INT32_MAX) {
+                return INT32_MAX;
+            }
+            return (int32_t)remaining;
+        } else {
+            Input_Wait_Timer.duration = 0;
+        }
     }
+
+    return 0;
+}
+
+void timer_sleep(int32_t ms)
+{
+    Sleep_Timer.duration = ms;
+    Sleep_Timer.start = timer_now();
+}
+
+int32_t timer_sleeping(void)
+{
+    uint32_t remaining;
+    uint32_t elapsed;
+
+    if (Sleep_Timer.duration > 0) {
+        elapsed = timer_since(Sleep_Timer.start);
+        if (elapsed < Sleep_Timer.duration) {
+            remaining = Sleep_Timer.duration - elapsed;
+            if (remaining > INT32_MAX) {
+                return INT32_MAX;
+            }
+            return (int32_t)remaining;
+        } else {
+            Sleep_Timer.duration = 0;
+        }
+    }
+
     return 0;
 }

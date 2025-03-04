@@ -131,16 +131,6 @@ struct ubasic_data
 #if defined(VARIABLE_TYPE_ARRAY)
     VARIABLE_TYPE input_array_index;
 #endif
-    // What it means to support SLEEP:
-    //    An interrupt routine has to exist which checks the value of
-    //        'sleeping_ms'
-    //    and decrease it by one every ms. As long as this is nonzero
-    //        ubasic_run()
-    //    will return immediately and not execute BASIC script.
-    //    The sleep() sets this to requested value of ms to sleep.
-    #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-    uint32_t sleeping_ms;
-    #endif
     #if defined(UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
     int16_t dutycycle_pwm_ch[UBASIC_SCRIPT_HAVE_PWM_CHANNELS];
     #endif
