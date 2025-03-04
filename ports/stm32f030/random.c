@@ -108,7 +108,7 @@ void MX_ADC_Init(void)
   return;
 }
 
-void analogReadConfig(uint8_t sampletime, uint8_t nr)
+void Analog_Input_Config(uint8_t sampletime, uint8_t nr)
 {
   if (nr)
     nreads = nr;
@@ -118,7 +118,7 @@ void analogReadConfig(uint8_t sampletime, uint8_t nr)
 }
 
 
-int16_t analogRead(uint8_t ch)
+int16_t Analog_Input_Read(uint8_t ch)
 {
   int16_t val=0;
   uint32_t dummy=0;
@@ -126,7 +126,7 @@ int16_t analogRead(uint8_t ch)
 
   if (ch != ch_prev)
   {
-    // clear old configuration 
+    // clear old configuration
     sConfig.Rank = ADC_RANK_NONE;
     if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
       return -2;
@@ -223,7 +223,7 @@ uint32_t RandomUInt32(uint8_t size)
 {
   uint32_t val=0, temp_val=0;
 
-  analogReadConfig(0,1); /* fastest readout, no averaging */
+  Analog_Input_Config(0,1); /* fastest readout, no averaging */
 
   for (uint8_t k=0; k<4; k++)
   {
@@ -231,7 +231,7 @@ uint32_t RandomUInt32(uint8_t size)
     for (uint8_t i=0; i<(size>>1); i++)
     {
       /* Two LS bits are most likely most random */
-      temp_val |= (analogRead(0x10) & 0x00000003) << (2*i);
+      temp_val |= (Analog_Input_Read(0x10) & 0x00000003) << (2*i);
     }
     val ^= temp_val;
   }
@@ -246,4 +246,4 @@ uint32_t RandomUInt32(uint8_t size)
 
 #endif /* #if defined(USE_STM32F0XX_NUCLEO) || defined(USE_STM32F4XX_NUCLEO) || defined(USE_STM32F0XX_DISCOVERY) */
 
- 
+

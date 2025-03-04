@@ -6,7 +6,7 @@
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
+  * USER CODE END. Other portions of this file, whether
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
@@ -54,10 +54,10 @@
 extern TIM_HandleTypeDef htim3;
 extern int16_t dutycycle_pwm_ch[UBASIC_SCRIPT_HAVE_PWM_CHANNELS];
 void pwm_Init(uint8_t ch);
-void    analogWriteConfig(uint16_t psc, uint16_t per);
-int16_t analogWrite(uint8_t ch, int16_t dutycycle);
+void    Analog_Output_Config(uint16_t psc, uint16_t per);
+int16_t Analog_Output_Write(uint8_t ch, int16_t dutycycle);
 #endif
-                
+
 
 /* USER CODE BEGIN Prototypes */
 

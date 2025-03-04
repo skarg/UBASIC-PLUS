@@ -2,23 +2,37 @@
 #include <stdio.h>
 #include "ubasic/ubasic.h"
 
-void analogWriteConfig(uint16_t psc, uint16_t per)
+#if defined(UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
+static int16_t dutycycle_pwm_ch[UBASIC_SCRIPT_HAVE_PWM_CHANNELS];
+#endif
+
+void Analog_Output_Config(uint16_t psc, uint16_t per)
 {
-    printf("analogWriteConfig(%d, %d)\n", psc, per);
+    printf("Analog_Output_Config(%d, %d)\n", psc, per);
 }
 
-void analogWrite(uint8_t ch, int16_t dutycycle)
+void Analog_Output_Write(uint8_t ch, int16_t dutycycle)
 {
-    printf("analogWrite(%d, %d)\n", ch, dutycycle);
+    if (ch < UBASIC_SCRIPT_HAVE_PWM_CHANNELS) {
+        dutycycle_pwm_ch[ch] = dutycycle;
+    }
 }
 
-void analogReadConfig(uint8_t sampletime, uint8_t nreads)
+int16_t Analog_Output_Read(uint8_t ch)
 {
-    printf("analogReadConfig(%d, %d)\n", sampletime, nreads);
+    if (ch < UBASIC_SCRIPT_HAVE_PWM_CHANNELS) {
+        return dutycycle_pwm_ch[ch];
+    }
+    return 0;
 }
 
-int16_t analogRead(uint8_t channel)
+void Analog_Input_Config(uint8_t sampletime, uint8_t nreads)
 {
-    printf("analogRead(%d)\n", channel);
+    printf("Analog_Input_Config(%d, %d)\n", sampletime, nreads);
+}
+
+int16_t Analog_Input_Read(uint8_t channel)
+{
+    printf("Analog_Input_Read(%d)\n", channel);
     return (int16_t)RandomUInt32(12);
 }

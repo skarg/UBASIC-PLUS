@@ -808,7 +808,7 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
     }
     else
     {
-      r = data->dutycycle_pwm_ch[j - 1];
+      r = Analog_Output_Read(j - 1);
     }
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
@@ -826,7 +826,7 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     j = fixedpt_toint(j);
 #endif
-    r = analogRead(j);
+    r = Analog_Input_Read(j);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
 #endif
@@ -1096,7 +1096,7 @@ static void goto_statement(struct ubasic_data *data)
 
   if (tokenizer_token(tree) == TOKENIZER_LABEL)
   {
-    tokenizer_label(tree, tmpstring, sizeof(MAX_STRINGLEN));
+    tokenizer_label(tree, tmpstring, sizeof(tmpstring));
     tokenizer_next(tree);
     jump_label(data, tmpstring);
     return;
@@ -1137,7 +1137,7 @@ static void pwm_statement(struct ubasic_data *data)
 
   if (j >= 1 && j <= UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
   {
-    analogWrite(j, r);
+    Analog_Output_Write(j-1, r);
   }
 
   accept_cr(tree);
@@ -1165,7 +1165,7 @@ static void pwmconf_statement(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
   r = fixedpt_toint(r);
 #endif
-  analogWriteConfig(j, r);
+  Analog_Output_Config(j, r);
   r = 0;
   accept(tree, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
@@ -1196,7 +1196,7 @@ static void areadconf_statement(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
   r = fixedpt_toint(r);
 #endif
-  analogReadConfig(j, r);
+  Analog_Input_Config(j, r);
   accept(tree, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
 }

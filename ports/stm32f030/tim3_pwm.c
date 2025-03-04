@@ -50,7 +50,7 @@ static uint8_t
 
 /* USER CODE END 0 */
 /* TIM3 init function */
-void analogWriteConfig (uint16_t psc, uint16_t per)
+void Analog_Output_Config (uint16_t psc, uint16_t per)
 {
   if ((tim3_pwm1_prescaler == psc) && (tim3_pwm1_period_nclk == per) && init_completed)
     return;
@@ -103,7 +103,7 @@ void pwm_Init(uint8_t ch)
 
   if (!init_completed)
   {
-    analogWriteConfig (TIM3_PWM1_PSC, TIM3_PWM1_PERIOD_CLK);
+    Analog_Output_Config (TIM3_PWM1_PSC, TIM3_PWM1_PERIOD_CLK);
   }
 
   if ( (ch==1) && (dutycycle_pwm_ch[0] < 0))
@@ -146,7 +146,7 @@ void pwm_Init(uint8_t ch)
      * PC7     ------> TIM3_CH2
      */
     GPIO_InitStruct.Pin = GPIO_PIN_7;
-    GPIO_InitStruct.Alternate = GPIO_AF0_MCO; 
+    GPIO_InitStruct.Alternate = GPIO_AF0_MCO;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 #endif
     dutycycle_pwm_ch[1] = 0;
@@ -199,7 +199,7 @@ void pwm_Init(uint8_t ch)
   }
 }
 
-void analogWrite(uint8_t ch, int16_t dutycycle)
+void Analog_Output_Write(uint8_t ch, int16_t dutycycle)
 {
   if (dutycycle < 0)
   {
@@ -286,7 +286,7 @@ void HAL_TIM_PWM_MspDeInit(TIM_HandleTypeDef* tim_pwmHandle)
 
   /* USER CODE END TIM3_MspDeInit 1 */
   }
-} 
+}
 
 /* USER CODE BEGIN 1 */
 

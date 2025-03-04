@@ -173,8 +173,9 @@
 
 // What it means to support PWM:
 #if defined(UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
-void analogWriteConfig(uint16_t psc, uint16_t per);
-void analogWrite(uint8_t ch, int16_t dutycycle);
+void Analog_Output_Config(uint16_t psc, uint16_t per);
+void Analog_Output_Write(uint8_t ch, int16_t dutycycle);
+int16_t Analog_Output_Read(uint8_t ch);
 #endif
 
 //
@@ -228,8 +229,8 @@ int32_t timer_input_remaining(void);
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR) || defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
 uint32_t RandomUInt32(uint8_t size);
 #if defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
-void analogReadConfig(uint8_t sampletime, uint8_t nreads);
-int16_t analogRead(uint8_t channel);
+void Analog_Input_Config(uint8_t sampletime, uint8_t nreads);
+int16_t Analog_Input_Read(uint8_t channel);
 #endif /* UBASIC_SCRIPT_HAVE_ANALOG_READ */
 #endif /* UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR || UBASIC_SCRIPT_HAVE_ANALOG_READ */
 

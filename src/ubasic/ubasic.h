@@ -131,9 +131,6 @@ struct ubasic_data
 #if defined(VARIABLE_TYPE_ARRAY)
     VARIABLE_TYPE input_array_index;
 #endif
-    #if defined(UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
-    int16_t dutycycle_pwm_ch[UBASIC_SCRIPT_HAVE_PWM_CHANNELS];
-    #endif
 };
 
 void ubasic_load_program(struct ubasic_data *data, const char *program);
