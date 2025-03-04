@@ -205,4 +205,6 @@ uint16_t tokenizer_save_offset(struct tokenizer_data *data);
 void tokenizer_jump_offset(struct tokenizer_data *data, uint16_t offset);
 uint16_t tokenizer_line_number(struct tokenizer_data *data);
 
+const char *tokenizer_name(VARIABLE_TYPE token);
+
 #endif /* __TOKENIZER_H__ */

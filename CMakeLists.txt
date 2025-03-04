@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
 # set the project name
 project(uBASIC-Plus
@@ -50,6 +50,7 @@ if (CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "AppleCla
     # don't warn about conversion, sign, compares, long long and attributes
     add_compile_options(-Wno-sign-conversion -Wno-conversion)
     add_compile_options(-Wno-sign-compare)
+    add_compile_options(-Wno-implicit-fallthrough)
     if (APPLE)
         # Apple defines UINT64_MAX with ULL suffix. This is not C90 compliant.
         add_compile_options(-Wno-long-long)

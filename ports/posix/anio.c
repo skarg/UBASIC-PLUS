@@ -20,5 +20,5 @@ void analogReadConfig(uint8_t sampletime, uint8_t nreads)
 int16_t analogRead(uint8_t channel)
 {
     printf("analogRead(%d)\n", channel);
-    return 0;
+    return (int16_t)RandomUInt32(12);
 }

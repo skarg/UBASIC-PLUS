@@ -307,7 +307,19 @@ void ubasic_cli(void)
     {
       serial_input(statement, sizeof(statement));
 
-      if (strstr(statement, "prog"))
+      if (strstr(statement, "help"))
+      {
+        print_serial("Commands: help, run, cat, prog, save, edit");
+        #if defined(UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS)
+        print_serial(", demo 1-9");
+        #endif
+        #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
+        print_serial(", flash");
+        #endif
+        print_serial("\n>");
+        return;
+      }
+      else if (strstr(statement, "prog"))
       {
         // enter programming mode
         script[0] = 0;

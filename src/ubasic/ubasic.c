@@ -107,10 +107,6 @@ static uint8_t accept(struct tokenizer_data *tree, VARIABLE_TYPE token)
     tokenizer_error_print(tree, token);
     return 1;
   }
-  {
-    tokenizer_error_print(tree, token);
-    return 1;
-  }
 
   tokenizer_next(tree);
   return 0;
@@ -1371,7 +1367,7 @@ static void endif_statement(struct ubasic_data *data)
 
 static void if_statement(struct ubasic_data *data)
 {
-  uint8_t else_cntr, endif_cntr, f_nt, f_sl;
+  int8_t else_cntr, endif_cntr, f_nt, f_sl;
   struct tokenizer_data *tree = &data->tree;
 
   accept(tree, TOKENIZER_IF);
@@ -2098,7 +2094,7 @@ static void store_statement(struct ubasic_data *data)
     varnum = tokenizer_variable_num(tree);
     accept(tree, TOKENIZER_ARRAYVARIABLE);
     datalen = 4 * (data->arrays_data[data->arrayvariable[varnum]] & 0x0000ffff);
-    dataptr = (uint8_t *)data->arrays_data[data->arrayvariable[varnum]];
+    dataptr = (uint8_t *)&data->arrays_data[data->arrayvariable[varnum]];
     EE_WriteVariable(varnum, 2, datalen, dataptr);
   }
 #endif

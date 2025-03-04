@@ -644,15 +644,19 @@ void tokenizer_label(struct tokenizer_data *tree, char *dest, uint8_t len)
 /*---------------------------------------------------------------------------*/
 void tokenizer_error_print(struct tokenizer_data *tree, VARIABLE_TYPE token)
 {
-  char msg[10];
-  //   if (status.bit.isRunning == 1)
-  //   {
-  //     print_serial("Line ");
-  //     sprintf(msg,"%d:", current_line);
-  //     print_serial(msg);
-  //   }
+  char msg[32];
+  const char *name;
+
   print_serial("Err");
-  sprintf(msg, "[%u]:", (uint8_t)token);
+  name = tokenizer_name(token);
+  if (name)
+  {
+    snprintf(msg, sizeof(msg), "[%s]:", name);
+  }
+  else
+  {
+    snprintf(msg, sizeof(msg), "[%u]:", (unsigned)token);
+  }
   print_serial(msg);
   print_serial(tree->ptr - 1);
   print_serial("\n");
@@ -693,4 +697,19 @@ void tokenizer_jump_offset(struct tokenizer_data *tree, uint16_t offset)
   while ((tree->current_token == TOKENIZER_EOL) && !tokenizer_finished(tree))
     tokenizer_next(tree);
   return;
+}
+
+const char *tokenizer_name(VARIABLE_TYPE token)
+{
+  struct keyword_token const *kt;
+
+  for (kt = keywords; kt->keyword != NULL; ++kt)
+  {
+    if (kt->token == token)
+    {
+      return kt->keyword;
+    }
+  }
+
+  return NULL;
 }
