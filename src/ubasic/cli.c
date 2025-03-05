@@ -5,49 +5,50 @@
 
 static void print_numbered_lines(struct ubasic_data *data, const char *script)
 {
-  uint16_t counter = 0;
-  char msg[32];
+    uint16_t counter = 0;
+    char msg[32];
 
-  const char *c = script, *d = 0, *e = 0;
+    const char *c = script, *d = 0, *e = 0;
 
-  do
-  {
-    counter++;
-    sprintf(msg, "%02u ", counter);
-    data->serial_write_string(msg);
+    do {
+        counter++;
+        sprintf(msg, "%02u ", counter);
+        data->serial_write_string(msg);
 
-    const char *s = c;
-    while (*s == ' ')
-      ++s;
+        const char *s = c;
+        while (*s == ' ') {
+            ++s;
+        }
 
-    /* important: because two EOLs are used make sure that the first of the two is selected ! */
-    d = strchr(s, ';');
-    e = strchr(s, '\n');
-    if (e)
-      d = d - e > 0 ? e : d;
+        /* important: because two EOLs are used make sure that the first of the
+         * two is selected ! */
+        d = strchr(s, ';');
+        e = strchr(s, '\n');
+        if (e) {
+            d = d - e > 0 ? e : d;
+        }
 
-    if (d)
-    {
-      data->serial_write(s, d - s);
-      c = d + 1;
-    }
-    else
-      data->serial_write_string(s);
+        if (d) {
+            data->serial_write(s, d - s);
+            c = d + 1;
+        } else {
+            data->serial_write_string(s);
+        }
 
-    data->serial_write_string("\n");
-  } while (d);
+        data->serial_write_string("\n");
+    } while (d);
 }
 
-/* Example Scripts for demo command ---------------------------------------------------------*/
-static const char welcome_msg[] =
-    "\
+/* Example Scripts for demo command
+ * ---------------------------------------------------------*/
+static const char welcome_msg[] = "\
 Welcome to uBasic-Plus for by M.Kostrun\n\
 Expands upon uBasic by A.Dunkels, uBasic with string by D.Mitchell,\n\
 and uBasic for CHDK by P.d'Angelo\n>";
 
 const char *cli_welcome_msg(void)
 {
-  return welcome_msg;
+    return welcome_msg;
 }
 
 #if defined(UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS)
@@ -274,7 +275,8 @@ if (recall(s$)==0) then;\
 endif;\
 println 'stored: s$',s$;\
 println 'Demo 9 Completed';\
-end"};
+end"
+};
 #endif
 
 /* Private variables ---------------------------------------------------------*/
@@ -292,205 +294,178 @@ static uint8_t cli_state = UBASIC_CLI_INIT;
  */
 static int serial_printf(struct ubasic_data *data, const char *format, ...)
 {
-  int length = 0;
-  char buffer[256];
-  va_list ap;
+    int length = 0;
+    char buffer[256];
+    va_list ap;
 
-  va_start(ap, format);
-  length = vsnprintf(buffer, sizeof(buffer), format, ap);
-  data->serial_write_string(buffer);
-  va_end(ap);
+    va_start(ap, format);
+    length = vsnprintf(buffer, sizeof(buffer), format, ap);
+    data->serial_write_string(buffer);
+    va_end(ap);
 
-  return length;
+    return length;
 }
 
 static void ubasic_cli_flash_dump(struct ubasic_data *data)
 {
-  uint8_t name = 0;
-  uint8_t vartype = 0;
-  uint8_t datalen = 0;
-  uint8_t buffer[256];
+    uint8_t name = 0;
+    uint8_t vartype = 0;
+    uint8_t datalen = 0;
+    uint8_t buffer[256];
 
-  for (name = 0; name < 255; name++)
-  {
-    data->flash_read(name, vartype, buffer, &datalen);
-    if (datalen > 0)
-    {
-      serial_printf(data, "Variable %c: Type=%d, Length=%d, Data=", name + 'a', vartype, datalen);
-      for (uint8_t i = 0; i < datalen; i++)
-      {
-        serial_printf(data, "%02X ", buffer[i]);
-      }
-      serial_printf(data, "\n");
+    for (name = 0; name < 255; name++) {
+        data->flash_read(name, vartype, buffer, &datalen);
+        if (datalen > 0) {
+            serial_printf(
+                data, "Variable %c: Type=%d, Length=%d, Data=", name + 'a',
+                vartype, datalen);
+            for (uint8_t i = 0; i < datalen; i++) {
+                serial_printf(data, "%02X ", buffer[i]);
+            }
+            serial_printf(data, "\n");
+        }
     }
-  }
 }
 
 void ubasic_cli(struct ubasic_data *data)
 {
-  if (cli_state == UBASIC_CLI_INIT)
-  {
-    /* nothing to do */
-  }
-  if ((cli_state == UBASIC_CLI_LOADED) || (cli_state == UBASIC_CLI_RUNNING))
-  {
-    ubasic_run_program(data);
-    cli_state = UBASIC_CLI_RUNNING;
-    if (ubasic_finished(data))
-    {
-      cli_state = UBASIC_CLI_IDLE;
-      data->serial_write_string("\n>");
+    if (cli_state == UBASIC_CLI_INIT) {
+        /* nothing to do */
     }
-    else if (!ubasic_waiting_for_input(data))
-    {
-      if (data->serial_read_available && data->serial_read_available())
-      {
-        if (data->serial_read &&
-            data->serial_read(statement, sizeof(statement)) &&
-            strstr(statement, "kill"))
-        {
-          // enter programming mode
-          data->serial_write_string("killed\n>");
-          cli_state = UBASIC_CLI_IDLE;
-          ubasic_load_program(data, NULL);
-          return;
+    if ((cli_state == UBASIC_CLI_LOADED) || (cli_state == UBASIC_CLI_RUNNING)) {
+        ubasic_run_program(data);
+        cli_state = UBASIC_CLI_RUNNING;
+        if (ubasic_finished(data)) {
+            cli_state = UBASIC_CLI_IDLE;
+            data->serial_write_string("\n>");
+        } else if (!ubasic_waiting_for_input(data)) {
+            if (data->serial_read_available && data->serial_read_available()) {
+                if (data->serial_read &&
+                    data->serial_read(statement, sizeof(statement)) &&
+                    strstr(statement, "kill")) {
+                    // enter programming mode
+                    data->serial_write_string("killed\n>");
+                    cli_state = UBASIC_CLI_IDLE;
+                    ubasic_load_program(data, NULL);
+                    return;
+                }
+            }
         }
-      }
     }
-  }
 
-  if (cli_state != UBASIC_CLI_RUNNING)
-  {
-    if (data->serial_read_available && data->serial_read_available())
-    {
-      if (data->serial_read &&
-        data->serial_read(statement, sizeof(statement)) &&
-        strstr(statement, "help"))
-      {
-        data->serial_write_string("Commands: help, run, cat, prog, save, edit");
+    if (cli_state != UBASIC_CLI_RUNNING) {
+        if (data->serial_read_available && data->serial_read_available()) {
+            if (data->serial_read &&
+                data->serial_read(statement, sizeof(statement)) &&
+                strstr(statement, "help")) {
+                data->serial_write_string(
+                    "Commands: help, run, cat, prog, save, edit");
 #if defined(UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS)
-        data->serial_write_string(", demo 1-9");
+                data->serial_write_string(", demo 1-9");
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
-        data->serial_write_string(", flash");
+                data->serial_write_string(", flash");
 #endif
-        data->serial_write_string("\n>");
-        return;
-      }
-      else if (strstr(statement, "prog"))
-      {
-        // enter programming mode
-        script[0] = 0;
-        data->serial_write_string("Enter your script. Type 'run' to execute!\n>");
-        cli_state = UBASIC_CLI_PROG;
-        return;
-      }
-      else if (strstr(statement, "run"))
-      {
-        // run script
-        data->serial_write_string("run\n");
-        if (strlen(script) > 0)
-        {
-          ubasic_load_program(data, script);
-          cli_state = UBASIC_CLI_LOADED;
-        }
-        return;
-      }
-      else if (strstr(statement, "cat"))
-      {
-        // list script
-        data->serial_write_string("cat\n");
-        if (strlen(script) > 0)
-        {
-          print_numbered_lines(data, script);
-          data->serial_write_string("\n");
-        }
-        data->serial_write_string(">");
-        return;
-      }
-      else if (strstr(statement, "save"))
-      {
-        // save script: exit PROG mode
-        data->serial_write_string("save\n>");
-        if (strlen(script) > 0)
-        {
-          cli_state = UBASIC_CLI_IDLE;
-        }
-        return;
-      }
-      else if (strstr(statement, "edit"))
-      {
-        // edit script: re-enter PROG mode
-        data->serial_write_string("edit\n>");
-        if (strlen(script) > 0)
-        {
-          cli_state = UBASIC_CLI_PROG;
-        }
-        return;
-      }
+                data->serial_write_string("\n>");
+                return;
+            } else if (strstr(statement, "prog")) {
+                // enter programming mode
+                script[0] = 0;
+                data->serial_write_string(
+                    "Enter your script. Type 'run' to execute!\n>");
+                cli_state = UBASIC_CLI_PROG;
+                return;
+            } else if (strstr(statement, "run")) {
+                // run script
+                data->serial_write_string("run\n");
+                if (strlen(script) > 0) {
+                    ubasic_load_program(data, script);
+                    cli_state = UBASIC_CLI_LOADED;
+                }
+                return;
+            } else if (strstr(statement, "cat")) {
+                // list script
+                data->serial_write_string("cat\n");
+                if (strlen(script) > 0) {
+                    print_numbered_lines(data, script);
+                    data->serial_write_string("\n");
+                }
+                data->serial_write_string(">");
+                return;
+            } else if (strstr(statement, "save")) {
+                // save script: exit PROG mode
+                data->serial_write_string("save\n>");
+                if (strlen(script) > 0) {
+                    cli_state = UBASIC_CLI_IDLE;
+                }
+                return;
+            } else if (strstr(statement, "edit")) {
+                // edit script: re-enter PROG mode
+                data->serial_write_string("edit\n>");
+                if (strlen(script) > 0) {
+                    cli_state = UBASIC_CLI_PROG;
+                }
+                return;
+            }
 #if defined(UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS)
-      else if (strstr(statement, "demo"))
-      {
-        // run script
-        data->serial_write_string(statement);
-        data->serial_write_string("\n");
-        char *s = &statement[4];
-        while (*s == ' ')
-          ++s;
-        uint8_t idx = *s - '0';
-        if (idx < 10)
-        {
-          ubasic_load_program(data, program[idx - 1]);
-          cli_state = UBASIC_CLI_LOADED;
-        }
-        else
-        {
-          data->serial_write_string("demo script out of range!\n");
-        }
-        return;
-      }
+            else if (strstr(statement, "demo")) {
+                // run script
+                data->serial_write_string(statement);
+                data->serial_write_string("\n");
+                char *s = &statement[4];
+                while (*s == ' ') {
+                    ++s;
+                }
+                uint8_t idx = *s - '0';
+                if (idx < 10) {
+                    ubasic_load_program(data, program[idx - 1]);
+                    cli_state = UBASIC_CLI_LOADED;
+                } else {
+                    data->serial_write_string("demo script out of range!\n");
+                }
+                return;
+            }
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
-      else if (strstr(statement, "flash"))
-      {
-        // test write
-        data->serial_write_string("flash\n");
-        ubasic_cli_flash_dump(data);
-        data->serial_write_string(">");
-        return;
-      }
+            else if (strstr(statement, "flash")) {
+                // test write
+                data->serial_write_string("flash\n");
+                ubasic_cli_flash_dump(data);
+                data->serial_write_string(">");
+                return;
+            }
 #endif
-      if (cli_state == UBASIC_CLI_PROG)
-      {
-        // add statement to the script
-        // put ';' at the end of each new line
-        if (strlen(script) > 0)
-        {
-          while (script[strlen(script) - 1] == ' ' || script[strlen(script) - 1] == '\t')
-            script[strlen(script) - 1] = '\0';
-          if (script[strlen(script) - 1] != '\n' && script[strlen(script) - 1] != ';')
-            sprintf(&script[strlen(script)], "\n");
+            if (cli_state == UBASIC_CLI_PROG) {
+                // add statement to the script
+                // put ';' at the end of each new line
+                if (strlen(script) > 0) {
+                    while (script[strlen(script) - 1] == ' ' ||
+                           script[strlen(script) - 1] == '\t') {
+                        script[strlen(script) - 1] = '\0';
+                    }
+                    if (script[strlen(script) - 1] != '\n' &&
+                        script[strlen(script) - 1] != ';') {
+                        sprintf(&script[strlen(script)], "\n");
+                    }
+                }
+                char *s = statement;
+                while (*s == ' ') {
+                    s++;
+                }
+                sprintf(&script[strlen(script)], "%s", s);
+                data->serial_write_string(s);
+                data->serial_write_string("\n>");
+            } else {
+                // prepare statement for execution
+                if (strlen(statement) > 0) {
+                    data->serial_write_string(statement);
+                    data->serial_write_string("\n");
+                    ubasic_load_program(data, statement);
+                    cli_state = UBASIC_CLI_LOADED;
+                }
+            }
         }
-        char *s = statement;
-        while (*s == ' ')
-          s++;
-        sprintf(&script[strlen(script)], "%s", s);
-        data->serial_write_string(s);
-        data->serial_write_string("\n>");
-      }
-      else
-      {
-        // prepare statement for execution
-        if (strlen(statement) > 0)
-        {
-          data->serial_write_string(statement);
-          data->serial_write_string("\n");
-          ubasic_load_program(data, statement);
-          cli_state = UBASIC_CLI_LOADED;
-        }
-      }
     }
-  }
 
-  return;
+    return;
 }

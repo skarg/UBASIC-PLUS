@@ -47,30 +47,27 @@
 #include "platform.h"
 #include "tokenizer.h"
 
-#define status_RUN   0x80
+#define status_RUN 0x80
 #define status_MASK_NOT_RUNNING 0x7f
-#define status_IDLE  0x00
+#define status_IDLE 0x00
 
 /* define a structure with bit fields */
-typedef union
-{
-  uint8_t byte;
-  struct
-  {
-    uint8_t notInitialized : 1;
-    uint8_t stringstackModified : 1;
-    uint8_t bit2 : 1;
-    uint8_t bit3 : 1;
-    uint8_t bit4 : 1;
-    uint8_t WaitForSerialInput : 1;
-    uint8_t Error       : 1;
-    uint8_t isRunning   : 1;
-  } bit;
+typedef union {
+    uint8_t byte;
+    struct {
+        uint8_t notInitialized : 1;
+        uint8_t stringstackModified : 1;
+        uint8_t bit2 : 1;
+        uint8_t bit3 : 1;
+        uint8_t bit4 : 1;
+        uint8_t WaitForSerialInput : 1;
+        uint8_t Error : 1;
+        uint8_t isRunning : 1;
+    } bit;
 } UBASIC_STATUS;
 
 #define MAX_FOR_STACK_DEPTH 4
-struct ubasic_for_state
-{
+struct ubasic_for_state {
     uint16_t line_after_for;
     uint8_t for_variable;
     VARIABLE_TYPE to;
@@ -78,8 +75,7 @@ struct ubasic_for_state
 };
 
 #define MAX_WHILE_STACK_DEPTH 4
-struct ubasic_while_state
-{
+struct ubasic_while_state {
     uint16_t line_while;
     int16_t line_after_endwhile;
 };
@@ -100,8 +96,7 @@ struct ubasic_mstimer {
     uint32_t interval;
 };
 
-struct ubasic_data
-{
+struct ubasic_data {
     UBASIC_STATUS status;
     uint8_t input_how;
     struct tokenizer_data tree;
@@ -111,7 +106,7 @@ struct ubasic_data
     int16_t free_arrayptr;
     int16_t arrayvariable[MAX_VARNUM];
 #endif
-    char const *program_ptr;
+    const char *program_ptr;
 
     uint16_t gosub_stack[MAX_GOSUB_STACK_DEPTH];
     uint8_t gosub_stack_ptr;
@@ -163,9 +158,10 @@ struct ubasic_data
     int8_t (*gpio_write)(uint8_t ch, uint8_t PinState);
     int8_t (*gpio_read)(uint8_t ch);
 #endif
-#if (defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
-     defined(UBASIC_SCRIPT_HAVE_SLEEP) || \
-     defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
+#if (                                              \
+    defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
+    defined(UBASIC_SCRIPT_HAVE_SLEEP) ||           \
+    defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
     uint32_t (*mstimer_now)(void);
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
@@ -181,8 +177,10 @@ struct ubasic_data
     uint32_t (*random_uint32)(uint8_t size);
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
-    void (*flash_write)(uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr);
-    void (*flash_read)(uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen);
+    void (*flash_write)(
+        uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr);
+    void (*flash_read)(
+        uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen);
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
     uint8_t (*serial_read_available)();
@@ -202,17 +200,25 @@ uint8_t ubasic_finished(struct ubasic_data *data);
 uint8_t ubasic_waiting_for_input(struct ubasic_data *data);
 
 VARIABLE_TYPE ubasic_get_variable(struct ubasic_data *data, uint8_t varnum);
-void ubasic_set_variable(struct ubasic_data *data, uint8_t varum, VARIABLE_TYPE value);
+void ubasic_set_variable(
+    struct ubasic_data *data, uint8_t varum, VARIABLE_TYPE value);
 
 #if defined(VARIABLE_TYPE_ARRAY)
-void ubasic_dim_arrayvariable(struct ubasic_data *data, uint8_t varnum, int16_t size);
-void ubasic_set_arrayvariable(struct ubasic_data *data, uint8_t varnum, uint16_t idx, VARIABLE_TYPE value);
-VARIABLE_TYPE ubasic_get_arrayvariable(struct ubasic_data *data, uint8_t varnum, uint16_t idx);
+void ubasic_dim_arrayvariable(
+    struct ubasic_data *data, uint8_t varnum, int16_t size);
+void ubasic_set_arrayvariable(
+    struct ubasic_data *data,
+    uint8_t varnum,
+    uint16_t idx,
+    VARIABLE_TYPE value);
+VARIABLE_TYPE ubasic_get_arrayvariable(
+    struct ubasic_data *data, uint8_t varnum, uint16_t idx);
 #endif
 
 #if defined(VARIABLE_TYPE_STRING)
 int16_t ubasic_get_stringvariable(struct ubasic_data *data, uint8_t varnum);
-void ubasic_set_stringvariable(struct ubasic_data *data, uint8_t varnum, int16_t size);
+void ubasic_set_stringvariable(
+    struct ubasic_data *data, uint8_t varnum, int16_t size);
 #endif
 
 /* API to interface and initialize the hardware drivers */

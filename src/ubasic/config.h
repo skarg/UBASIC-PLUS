@@ -75,13 +75,15 @@
 /* This many one-letter variables UBASIC supports */
 #define MAX_VARNUM 26
 
-/* have numeric arrays and set their storage to this many VARIABLE_TYPE entries */
+/* have numeric arrays and set their storage to this many VARIABLE_TYPE entries
+ */
 #define VARIABLE_TYPE_ARRAY 64
 
 /* have strings and related functions */
 #define VARIABLE_TYPE_STRING
 
-/* can go to sleep: leave UBASIC for other stuff while waiting for timer to expire */
+/* can go to sleep: leave UBASIC for other stuff while waiting for timer to
+ * expire */
 #define UBASIC_SCRIPT_HAVE_SLEEP
 
 /* have microcontroller support for PWM: specify how many channels */
@@ -132,7 +134,8 @@
 
 #define VARIABLE_TYPE int32_t
 
-#if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
+#if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || \
+    defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
 
 #define FIXEDPT_BITS 32
 
@@ -151,7 +154,8 @@
 #elif defined(VARIABLE_STORAGE_INT16)
 
 #define VARIABLE_TYPE int16_t
-#if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
+#if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || \
+    defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
 #error "Fixed Point Floats are Supported for 32bit Storage Only!"
 #endif
 

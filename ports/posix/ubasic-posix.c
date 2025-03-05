@@ -38,7 +38,7 @@
 #if defined(_MSC_VER)
 #include <conio.h> /* for kbhit and getch */
 #else
-#include <termios.h>   /* used in kbhit() */
+#include <termios.h> /* used in kbhit() */
 #include <sys/ioctl.h> /* used in kbhit() */
 #endif
 #include "ubasic/ubasic.h"
@@ -47,7 +47,7 @@
 #if defined(_MSC_VER)
 #include <conio.h> /* for kbhit and getch */
 #else
-#include <termios.h>   /* used in kbhit() */
+#include <termios.h> /* used in kbhit() */
 #include <sys/ioctl.h> /* used in kbhit() */
 #endif
 #include "ubasic/ubasic.h"
@@ -66,8 +66,7 @@ static int kbhit(void)
     static bool initialized = false;
     int bytesWaiting;
 
-    if (!initialized)
-    {
+    if (!initialized) {
         /* use termios to turn off line buffering */
         struct termios term;
         tcgetattr(STDIN, &term);
@@ -87,56 +86,49 @@ static int kbhit(void)
  * @param ch - character read from serial port
  * @return 1 if line is complete and ready to process, 0 if not
  */
-static uint8_t serial_input_handler(
-    char *buffer,
-    unsigned buffer_len,
-    char ch)
+static uint8_t serial_input_handler(char *buffer, unsigned buffer_len, char ch)
 {
     uint8_t done = 0;
     size_t i;
 
-    if (!buffer || buffer_len == 0)
-    {
+    if (!buffer || buffer_len == 0) {
         return 0;
     }
-    switch (ch)
-    {
-    case '\a':
-    case '\f':
-    case '\t':
-    case '\r':
-    case '\v':
-        /* ignored characters */
-        break;
-    case 0x1B:
-        /* escape */
-        /* clear buffer */
-        buffer[0] = 0;
-        done = 1;
-        break;
-    case '\b':
-        /* backspace */
-        /* erase current character */
-        i = strlen(buffer);
-        if ((i > 0) && (i < (buffer_len - 1)))
-        {
-            buffer[i - 1] = 0;
-        }
-        break;
-    case '\n':
-        /* enter */
-        done = 1;
-        break;
-    default:
-        /* all the rest of the characters */
-        /* leave room for null at the end */
-        i = strlen(buffer);
-        if (i < (buffer_len - 1))
-        {
-            buffer[i] = ch;
-            buffer[i + 1] = 0;
-        }
-        break;
+    switch (ch) {
+        case '\a':
+        case '\f':
+        case '\t':
+        case '\r':
+        case '\v':
+            /* ignored characters */
+            break;
+        case 0x1B:
+            /* escape */
+            /* clear buffer */
+            buffer[0] = 0;
+            done = 1;
+            break;
+        case '\b':
+            /* backspace */
+            /* erase current character */
+            i = strlen(buffer);
+            if ((i > 0) && (i < (buffer_len - 1))) {
+                buffer[i - 1] = 0;
+            }
+            break;
+        case '\n':
+            /* enter */
+            done = 1;
+            break;
+        default:
+            /* all the rest of the characters */
+            /* leave room for null at the end */
+            i = strlen(buffer);
+            if (i < (buffer_len - 1)) {
+                buffer[i] = ch;
+                buffer[i + 1] = 0;
+            }
+            break;
     }
 
     return done;
@@ -150,8 +142,7 @@ static uint8_t serial_read_available(void)
 {
     char ch;
 
-    if (kbhit())
-    {
+    if (kbhit()) {
         ch = getchar();
         return serial_input_handler(Serial_Buffer, sizeof(Serial_Buffer), ch);
     }
@@ -170,15 +161,12 @@ static uint8_t serial_read(char *buffer, uint8_t len)
 {
     uint16_t i;
 
-    if (!buffer || len == 0)
-    {
+    if (!buffer || len == 0) {
         return 0;
     }
-    for (i = 0; i < len; i++)
-    {
+    for (i = 0; i < len; i++) {
         buffer[i] = Serial_Buffer[i];
-        if (Serial_Buffer[i] == '\0')
-        {
+        if (Serial_Buffer[i] == '\0') {
             break;
         }
     }
@@ -222,10 +210,8 @@ static uint32_t Event_Mask;
  */
 static int8_t posix_hw_event(uint8_t bit)
 {
-    if (bit < 32)
-    {
-        if (Event_Mask & (1UL << bit))
-        {
+    if (bit < 32) {
+        if (Event_Mask & (1UL << bit)) {
             printf("HW-Event(%d)\n", bit);
             return 1; // Event is set
         }
@@ -240,8 +226,7 @@ static int8_t posix_hw_event(uint8_t bit)
  */
 static void posix_hw_event_clear(uint8_t bit)
 {
-    if (bit < 32)
-    {
+    if (bit < 32) {
         Event_Mask &= ~(1UL << bit);
         printf("HW-Event Cleared(%d)\n", bit);
     }
@@ -253,8 +238,7 @@ static void posix_hw_event_clear(uint8_t bit)
  */
 static void posix_hw_event_set(uint8_t bit)
 {
-    if (bit < 32)
-    {
+    if (bit < 32) {
         Event_Mask |= (1UL << bit);
         printf("HW-Event Set(%d)\n", bit);
     }
@@ -276,17 +260,14 @@ static void eepromFormat(void)
 
     printf("EEPROM: creating file %s\n", EEPROM_Filename);
     pFile = fopen(EEPROM_Filename, "wb");
-    if (!pFile)
-    {
+    if (!pFile) {
         perror("fopen error");
         return;
     }
-    for (i = 0; i < 256; i++)
-    {
+    for (i = 0; i < 256; i++) {
         buffer[i] = 0xFF;
     }
-    for (i = 0; i < 256; i++)
-    {
+    for (i = 0; i < 256; i++) {
         fwrite(buffer, 1, sizeof(buffer), pFile);
     }
     fclose(pFile);
@@ -298,10 +279,8 @@ static void eepromFormat(void)
  * @param buffer data to store
  * @param length number of bytes of data to read
  */
-static size_t eepromRead(
-    uint16_t start_address,
-    uint8_t *buffer,
-    uint16_t length)
+static size_t
+eepromRead(uint16_t start_address, uint8_t *buffer, uint16_t length)
 {
     size_t bytes_read = 0, bytes_to_read = 0;
     FILE *pFile = NULL;
@@ -309,27 +288,21 @@ static size_t eepromRead(
     int seeking = 0;
 
     pFile = fopen(EEPROM_Filename, "rb");
-    if (!pFile)
-    {
+    if (!pFile) {
         eepromFormat();
         pFile = fopen(EEPROM_Filename, "rb");
     }
-    if (pFile)
-    {
+    if (pFile) {
         offset = start_address;
         seeking = fseek(pFile, offset, SEEK_SET);
-        if (seeking == 0)
-        {
+        if (seeking == 0) {
             bytes_to_read = length;
             bytes_read = fread(buffer, 1, bytes_to_read, pFile);
-            if (bytes_read != bytes_to_read)
-            {
+            if (bytes_read != bytes_to_read) {
                 perror("fread error");
             }
             fclose(pFile);
-        }
-        else
-        {
+        } else {
             perror("fseek error");
         }
     }
@@ -343,10 +316,8 @@ static size_t eepromRead(
  * @param buffer data to send
  * @param length number of bytes of data
  */
-static size_t eepromWrite(
-    uint16_t start_address,
-    uint8_t *buffer,
-    uint16_t length)
+static size_t
+eepromWrite(uint16_t start_address, uint8_t *buffer, uint16_t length)
 {
     size_t bytes_written = 0, bytes_to_write = 0;
     FILE *pFile = NULL;
@@ -354,16 +325,13 @@ static size_t eepromWrite(
     int seeking = 0;
 
     pFile = fopen(EEPROM_Filename, "rb+");
-    if (pFile)
-    {
+    if (pFile) {
         offset = start_address;
         seeking = fseek(pFile, offset, SEEK_SET);
-        if (seeking == 0)
-        {
+        if (seeking == 0) {
             bytes_to_write = length;
             bytes_written = fwrite(buffer, 1, bytes_to_write, pFile);
-            if (bytes_written != bytes_to_write)
-            {
+            if (bytes_written != bytes_to_write) {
                 perror("fwrite error");
             }
             fclose(pFile);
@@ -380,16 +348,18 @@ static size_t eepromWrite(
  * @param datalen_bytes Data length in bytes
  * @param dataptr Pointer to the data
  */
-static void posix_flash_write(uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr)
+static void posix_flash_write(
+    uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr)
 {
-    uint16_t start_address = Name * (datalen_bytes + 2); // Calculate the starting address based on variable name
+    uint16_t start_address = Name *
+        (datalen_bytes +
+         2); // Calculate the starting address based on variable name
     uint8_t buffer[256];
 
     // Prepare the buffer with the variable type and data length
-    buffer[0] = Vartype;       // First byte is the variable type
+    buffer[0] = Vartype; // First byte is the variable type
     buffer[1] = datalen_bytes; // Second byte is the data length
-    for (uint8_t i = 0; i < datalen_bytes; i++)
-    {
+    for (uint8_t i = 0; i < datalen_bytes; i++) {
         buffer[i + 2] = dataptr[i]; // Copy the actual data into the buffer
     }
 
@@ -404,33 +374,33 @@ static void posix_flash_write(uint8_t Name, uint8_t Vartype, uint8_t datalen_byt
  * @param dataptr Pointer to store the data
  * @param datalen Pointer to store the data length
  */
-static void posix_flash_read(uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen)
+static void posix_flash_read(
+    uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen)
 {
-    uint16_t start_address = Name * (256); // Calculate the starting address based on variable name
+    uint16_t start_address =
+        Name * (256); // Calculate the starting address based on variable name
     uint8_t buffer[256];
 
     // Read the data from EEPROM
     eepromRead(start_address, buffer, 256);
 
     // Check if the variable type matches
-    if (buffer[0] == Vartype)
-    {
+    if (buffer[0] == Vartype) {
         *datalen = buffer[1]; // Get the data length
-        for (uint8_t i = 0; i < *datalen; i++)
-        {
-            dataptr[i] = buffer[i + 2]; // Copy the actual data into the provided pointer
+        for (uint8_t i = 0; i < *datalen; i++) {
+            dataptr[i] =
+                buffer[i + 2]; // Copy the actual data into the provided pointer
         }
-    }
-    else
-    {
+    } else {
         *datalen = 0; // If type does not match, set length to 0
     }
 }
 #endif
 
-#if (defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
-     defined(UBASIC_SCRIPT_HAVE_SLEEP) ||           \
-     defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
+#if (                                              \
+    defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
+    defined(UBASIC_SCRIPT_HAVE_SLEEP) ||           \
+    defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
 /**
  * @brief Retrieves the system time, in milliseconds.
  * @return The system time, in milliseconds.
@@ -439,17 +409,14 @@ static uint32_t posix_mstimer_now(void)
 {
     struct timespec now;
     uint32_t ticks;
-    static struct timespec start = {0, 0};
+    static struct timespec start = { 0, 0 };
     static bool initialized = false;
 
     clock_gettime(CLOCK_MONOTONIC, &now);
-    if (initialized)
-    {
+    if (initialized) {
         ticks = (now.tv_sec - start.tv_sec) * 1000L +
-                (now.tv_nsec - start.tv_nsec) / 1000000L;
-    }
-    else
-    {
+            (now.tv_nsec - start.tv_nsec) / 1000000L;
+    } else {
         start.tv_sec = now.tv_sec;
         start.tv_nsec = now.tv_nsec;
         ticks = 0;
@@ -472,16 +439,13 @@ static uint32_t posix_random_uint32(uint8_t size)
     uint8_t k, i;
     static bool initialized = false;
 
-    if (!initialized)
-    {
+    if (!initialized) {
         srand(0);
         initialized = true;
     }
-    for (k = 0; k < 4; k++)
-    {
+    for (k = 0; k < 4; k++) {
         grains = 0;
-        for (i = 0; i < (size >> 1); i++)
-        {
+        for (i = 0; i < (size >> 1); i++) {
             /* Two LS bits are most likely most random */
             grains |= (rand() & 0x00000003) << (2 * i);
         }
@@ -512,8 +476,7 @@ static void posix_pwm_config(uint16_t psc, uint16_t per)
  */
 static void posix_pwm_write(uint8_t ch, int16_t dutycycle)
 {
-    if (ch < UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
-    {
+    if (ch < UBASIC_SCRIPT_HAVE_PWM_CHANNELS) {
         dutycycle_pwm_ch[ch] = dutycycle;
     }
 }
@@ -525,8 +488,7 @@ static void posix_pwm_write(uint8_t ch, int16_t dutycycle)
  */
 static int16_t posix_pwm_read(uint8_t ch)
 {
-    if (ch < UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
-    {
+    if (ch < UBASIC_SCRIPT_HAVE_PWM_CHANNELS) {
         return dutycycle_pwm_ch[ch];
     }
     return 0;
@@ -597,9 +559,10 @@ static int8_t posix_gpio_read(uint8_t ch)
  */
 void ubasic_hardware_init(struct ubasic_data *data)
 {
-#if (defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
-     defined(UBASIC_SCRIPT_HAVE_SLEEP) ||           \
-     defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
+#if (                                              \
+    defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
+    defined(UBASIC_SCRIPT_HAVE_SLEEP) ||           \
+    defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
     data->mstimer_now = posix_mstimer_now;
 #endif
     data->flash_write = posix_flash_write;
