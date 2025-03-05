@@ -156,10 +156,31 @@ struct ubasic_data
     void (*pwm_write)(uint8_t ch, int16_t dutycycle);
     int16_t (*pwm_read)(uint8_t ch);
 #endif
+#if defined(UBASIC_SCRIPT_HAVE_GPIO_CHANNELS)
+    void (*gpio_config)(uint8_t ch, int8_t mode, uint8_t freq);
+    int8_t (*gpio_write)(uint8_t ch, uint8_t PinState);
+    int8_t (*gpio_read)(uint8_t ch);
+#endif
 #if (defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
      defined(UBASIC_SCRIPT_HAVE_SLEEP) || \
      defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
     uint32_t (*mstimer_now)(void);
+#endif
+#if defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
+    void (*adc_config)(uint8_t sampletime, uint8_t nreads);
+    int16_t (*adc_read)(uint8_t channel);
+#endif
+#if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
+    int8_t (*hw_event)(uint8_t bit);
+    void (*hw_event_clear)(uint8_t bit);
+    void (*hw_event_set)(uint8_t bit);
+#endif
+#if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
+    uint32_t (*random_uint32)(uint8_t size);
+#endif
+#if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
+    void (*flash_write)(uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr);
+    void (*flash_read)(uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen);
 #endif
 };
 
@@ -184,10 +205,7 @@ int16_t ubasic_get_stringvariable(struct ubasic_data *data, uint8_t varnum);
 void ubasic_set_stringvariable(struct ubasic_data *data, uint8_t varnum, int16_t size);
 #endif
 
-/* suggested API to interface to the driver */
-uint32_t ubasic_mstimer_now(void);
-void ubasic_pwm_config(uint16_t psc, uint16_t per);
-void ubasic_pwm_write(uint8_t ch, int16_t dutycycle);
-int16_t ubasic_pwm_read(uint8_t ch);
+/* API to interface and initialize the hardware drivers */
+void ubasic_hardware_init(struct ubasic_data *data);
 
 #endif /* __UBASIC_H__ */

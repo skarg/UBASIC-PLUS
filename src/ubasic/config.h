@@ -171,17 +171,6 @@
 #define MAX_SVARNUM 26
 #endif
 
-#if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
-int8_t hw_event(uint8_t bit);
-void hw_event_clear(uint8_t bit);
-void hw_event_set(uint8_t bit);
-#endif
-
-#if defined(UBASIC_SCRIPT_HAVE_GPIO_CHANNELS)
-void pinMode(uint8_t ch, int8_t mode, uint8_t freq);
-int8_t digitalWrite(uint8_t ch, uint8_t PinState);
-int8_t digitalRead(uint8_t ch);
-#endif
 
 #if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
 void print_serial(const char *msg);
@@ -197,21 +186,6 @@ void print_numbered_lines(const char *script) { ; }
 #define UBASIC_SERIAL_INPUT_MS 50
 uint8_t serial_input_available();
 uint8_t serial_input(char *buffer, uint8_t len);
-#endif
-
-#if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR) || defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
-uint32_t RandomUInt32(uint8_t size);
-#if defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
-void Analog_Input_Config(uint8_t sampletime, uint8_t nreads);
-int16_t Analog_Input_Read(uint8_t channel);
-#endif /* UBASIC_SCRIPT_HAVE_ANALOG_READ */
-#endif /* UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR || UBASIC_SCRIPT_HAVE_ANALOG_READ */
-
-#if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
-void EE_Init(void);
-void EE_WriteVariable(uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr);
-void EE_ReadVariable(uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen);
-void EE_DumpFlash(void);
 #endif
 
 #endif /* #ifndef _CONFIG_H_ */

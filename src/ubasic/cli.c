@@ -1,3 +1,5 @@
+#include <stdarg.h>
+#include <stdio.h>
 #include "cli.h"
 #include "ubasic.h"
 
@@ -43,7 +45,8 @@ Welcome to uBasic-Plus for by M.Kostrun\n\
 Expands upon uBasic by A.Dunkels, uBasic with string by D.Mitchell,\n\
 and uBasic for CHDK by P.d'Angelo\n>";
 
-const char *cli_welcome_msg(void) {
+const char *cli_welcome_msg(void)
+{
   return welcome_msg;
 }
 
@@ -278,13 +281,55 @@ static char script[UBASIC_SCRIPT_SIZE_MAX];
 static char statement[UBASIC_STATEMENT_SIZE_MAX];
 static uint8_t cli_state = UBASIC_CLI_INIT;
 
+/**
+ * @brief Print with a printf string
+ * @param format - printf format string
+ * @param ... - variable arguments
+ * @note This function is only available if
+ * PRINT_ENABLED is non-zero
+ * @return number of characters printed
+ */
+static int serial_printf(const char *format, ...)
+{
+  int length = 0;
+  char buffer[256];
+  va_list ap;
+
+  va_start(ap, format);
+  length = vsnprintf(buffer, sizeof(buffer), format, ap);
+  print_serial(buffer);
+  va_end(ap);
+
+  return length;
+}
+
+static void ubasic_cli_flash_dump(struct ubasic_data *data)
+{
+  uint8_t name = 0;
+  uint8_t vartype = 0;
+  uint8_t datalen = 0;
+  uint8_t buffer[256];
+
+  for (name = 0; name < 255; name++)
+  {
+    data->flash_read(name, vartype, buffer, &datalen);
+    if (datalen > 0)
+    {
+      serial_printf("Variable %c: Type=%d, Length=%d, Data=", name + 'a', vartype, datalen);
+      for (uint8_t i = 0; i < datalen; i++)
+      {
+        serial_printf("%02X ", buffer[i]);
+      }
+      serial_printf("\n");
+    }
+  }
+}
+
 void ubasic_cli(struct ubasic_data *data)
 {
   if (cli_state == UBASIC_CLI_INIT)
   {
-#if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
-    EE_Init();
-#endif
+    /* nothing to do */
   }
   if ((cli_state == UBASIC_CLI_LOADED) || (cli_state == UBASIC_CLI_RUNNING))
   {
@@ -408,7 +453,7 @@ void ubasic_cli(struct ubasic_data *data)
       {
         // test write
         print_serial("flash\n");
-        EE_DumpFlash();
+        ubasic_cli_flash_dump(data);
         print_serial(">");
         return;
       }

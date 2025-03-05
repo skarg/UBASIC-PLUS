@@ -771,15 +771,24 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #endif
     if (r)
     {
-      if (hw_event(r - 1))
+      if (data->hw_event && data->hw_event_clear)
       {
-        hw_event_clear(r - 1);
+        if (data->hw_event(r - 1))
+        {
+          data->hw_event_clear(r - 1);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
-        r = FIXEDPT_ONE;
+          r = FIXEDPT_ONE;
 #endif
+        }
+        else
+        {
+          r = 0;
+        }
       }
       else
+      {
         r = 0;
+      }
     }
     accept(tree, TOKENIZER_RIGHTPAREN);
     break;
@@ -788,12 +797,19 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
   case TOKENIZER_RAN:
     accept(tree, TOKENIZER_RAN);
+    if (data->random_uint32)
+    {
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
-    r = RandomUInt32(FIXEDPT_WBITS);
-    r = fixedpt_fromint(r);
+      r = data->random_uint32(FIXEDPT_WBITS);
+      r = fixedpt_fromint(r);
 #else
-    r = RandomUInt32(32);
+      r = data->random_uint32(32);
 #endif
+    }
+    else
+    {
+      r = 0;
+    }
     if (r < 0)
       r = -r;
     break;
@@ -871,7 +887,14 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
   case TOKENIZER_UNIFORM:
     accept(tree, TOKENIZER_UNIFORM);
-    r = RandomUInt32(FIXEDPT_FBITS) & FIXEDPT_FMASK;
+    if (data->random_uint32)
+    {
+      r = data->random_uint32(FIXEDPT_FBITS) & FIXEDPT_FMASK;
+    }
+    else
+    {
+      r = 0;
+    }
     break;
 #endif
 
@@ -978,7 +1001,12 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     j = fixedpt_toint(j);
 #endif
-    r = Analog_Input_Read(j);
+    if (data->adc_read)
+    {
+      r = data->adc_read(j);
+    } else {
+      r = 0;
+    }
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
 #endif
@@ -1008,7 +1036,10 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
   case TOKENIZER_DREAD:
     accept(tree, TOKENIZER_LEFTPAREN);
     r = relation(data);
-    r = digitalRead(r);
+    if (data->gpio_read)
+    {
+      r = data->gpio_read(r);
+    }
     accept(tree, TOKENIZER_RIGHTPAREN);
     break;
 #endif /* UBASIC_SCRIPT_HAVE_GPIO_CHANNELS */
@@ -1354,7 +1385,10 @@ static void areadconf_statement(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
   r = fixedpt_toint(r);
 #endif
-  Analog_Input_Config(j, r);
+  if (data->adc_config)
+  {
+    data->adc_config(j, r);
+  }
   accept(tree, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
 }
@@ -1399,8 +1433,10 @@ static void pinmode_statement(struct ubasic_data *data)
     r = 0;
 
   accept(tree, TOKENIZER_RIGHTPAREN);
-
-  pinMode((uint8_t)i, (int8_t)j, (int8_t)r);
+  if (data->gpio_config)
+  {
+    data->gpio_config((uint8_t)i, (int8_t)j, (int8_t)r);
+  }
 
   accept_cr(tree);
 
@@ -1420,7 +1456,10 @@ static void dwrite_statemet(struct ubasic_data *data)
   if (r)
     r = 0x01;
   accept(tree, TOKENIZER_RIGHTPAREN);
-  r = digitalWrite(j, r);
+  if (data->gpio_write)
+  {
+    data->gpio_write(j, r);
+  }
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
   r = fixedpt_fromint(r);
 #endif
@@ -2178,7 +2217,8 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
     accept(tree, TOKENIZER_VARIABLE);
     dataptr = (uint8_t *)&data->variables[data->varnum];
     datalen = (uint8_t *)&rval;
-    EE_ReadVariable(data->varnum, 0, dataptr, datalen);
+    if (data->flash_read)
+      data->flash_read(data->varnum, 0, dataptr, datalen);
     rval >>= 2;
   }
 #if defined(VARIABLE_TYPE_STRING)
@@ -2189,7 +2229,8 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
     char dummy_s[MAX_STRINGLEN] = {0};
     dataptr = (uint8_t *)dummy_s;
     datalen = (uint8_t *)&rval;
-    EE_ReadVariable(data->varnum, 1, dataptr, datalen);
+    if (data->flash_read)
+      data->flash_read(data->varnum, 1, dataptr, datalen);
     if (rval > 0)
     {
       ubasic_set_stringvariable(data, data->varnum, scpy(data, (char *)dummy_s));
@@ -2206,7 +2247,8 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
     VARIABLE_TYPE dummy_a[VARIABLE_TYPE_ARRAY + 1];
     dataptr = (uint8_t *)dummy_a;
     datalen = (uint8_t *)&rval;
-    EE_ReadVariable(data->varnum, 2, dataptr, datalen);
+    if (data->flash_read)
+      data->flash_read(data->varnum, 2, dataptr, datalen);
     if (rval > 0)
     {
       rval >>= 2;
@@ -2235,7 +2277,8 @@ static void store_statement(struct ubasic_data *data)
     varnum = tokenizer_variable_num(tree);
     accept(tree, TOKENIZER_VARIABLE);
     dataptr = (uint8_t *)&data->variables[varnum];
-    EE_WriteVariable(varnum, 0, 4, dataptr);
+    if (data->flash_write)
+      data->flash_write(varnum, 0, 4, dataptr);
   }
 #if defined(VARIABLE_TYPE_STRING)
   else if (tokenizer_token(tree) == TOKENIZER_STRINGVARIABLE)
@@ -2244,7 +2287,8 @@ static void store_statement(struct ubasic_data *data)
     accept(tree, TOKENIZER_STRINGVARIABLE);
     dataptr = (uint8_t *)strptr(data, data->stringvariables[varnum]);
     datalen = strlen((char *)dataptr);
-    EE_WriteVariable(varnum, 1, datalen, dataptr);
+    if (data->flash_write)
+      data->flash_write(varnum, 1, datalen, dataptr);
   }
 #endif
 #if defined(VARIABLE_TYPE_ARRAY)
@@ -2254,7 +2298,8 @@ static void store_statement(struct ubasic_data *data)
     accept(tree, TOKENIZER_ARRAYVARIABLE);
     datalen = 4 * (data->arrays_data[data->arrayvariable[varnum]] & 0x0000ffff);
     dataptr = (uint8_t *)&data->arrays_data[data->arrayvariable[varnum]];
-    EE_WriteVariable(varnum, 2, datalen, dataptr);
+    if (data->flash_write)
+      data->flash_write(varnum, 2, datalen, dataptr);
   }
 #endif
   accept(tree, TOKENIZER_RIGHTPAREN);
