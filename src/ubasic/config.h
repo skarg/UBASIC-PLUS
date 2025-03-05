@@ -171,27 +171,6 @@
 #define MAX_SVARNUM 26
 #endif
 
-// What it means to support PWM:
-#if defined(UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
-void Analog_Output_Config(uint16_t psc, uint16_t per);
-void Analog_Output_Write(uint8_t ch, int16_t dutycycle);
-int16_t Analog_Output_Read(uint8_t ch);
-#endif
-
-//
-// What it means to support tic(n) toc(n):
-//    In the same interrupt routine that is executed every ms,
-//    these variables are increased by one each ms.
-//        tic(n)
-//    sets the n-th variable to 0, while
-//        toc(n)
-//    returns how many ms has passed since tic(n) was called.
-#if (defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
-     defined(UBASIC_SCRIPT_HAVE_SLEEP) || \
-     defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
-uint32_t mstimer_now(void);
-#endif
-
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
 int8_t hw_event(uint8_t bit);
 void hw_event_clear(uint8_t bit);

@@ -148,7 +148,19 @@ struct ubasic_data
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
     struct ubasic_mstimer input_wait_timer;
     struct ubasic_mstimer sleep_timer;
-    #endif
+#endif
+
+// API for hardware drivers
+#if defined(UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
+    void (*pwm_config)(uint16_t psc, uint16_t per);
+    void (*pwm_write)(uint8_t ch, int16_t dutycycle);
+    int16_t (*pwm_read)(uint8_t ch);
+#endif
+#if (defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
+     defined(UBASIC_SCRIPT_HAVE_SLEEP) || \
+     defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
+    uint32_t (*mstimer_now)(void);
+#endif
 };
 
 void ubasic_load_program(struct ubasic_data *data, const char *program);
@@ -171,5 +183,11 @@ VARIABLE_TYPE ubasic_get_arrayvariable(struct ubasic_data *data, uint8_t varnum,
 int16_t ubasic_get_stringvariable(struct ubasic_data *data, uint8_t varnum);
 void ubasic_set_stringvariable(struct ubasic_data *data, uint8_t varnum, int16_t size);
 #endif
+
+/* suggested API to interface to the driver */
+uint32_t ubasic_mstimer_now(void);
+void ubasic_pwm_config(uint16_t psc, uint16_t per);
+void ubasic_pwm_write(uint8_t ch, int16_t dutycycle);
+int16_t ubasic_pwm_read(uint8_t ch);
 
 #endif /* __UBASIC_H__ */

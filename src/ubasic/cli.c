@@ -37,11 +37,15 @@ void print_numbered_lines(const char *script)
 }
 
 /* Example Scripts for demo command ---------------------------------------------------------*/
-const char welcome_msg[] =
+static const char welcome_msg[] =
     "\
-Welcome to uBasic-Plus for STM32 by M.Kostrun\n\
+Welcome to uBasic-Plus for by M.Kostrun\n\
 Expands upon uBasic by A.Dunkels, uBasic with string by D.Mitchell,\n\
 and uBasic for CHDK by P.d'Angelo\n>";
+
+const char *cli_welcome_msg(void) {
+  return welcome_msg;
+}
 
 #if defined(UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS)
 static const char *program[] = {
@@ -273,12 +277,9 @@ end"};
 static char script[UBASIC_SCRIPT_SIZE_MAX];
 static char statement[UBASIC_STATEMENT_SIZE_MAX];
 static uint8_t cli_state = UBASIC_CLI_INIT;
-static struct ubasic_data UBasic_Program;
 
-void ubasic_cli(void)
+void ubasic_cli(struct ubasic_data *data)
 {
-  struct ubasic_data *data = &UBasic_Program;
-
   if (cli_state == UBASIC_CLI_INIT)
   {
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)

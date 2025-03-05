@@ -14,7 +14,7 @@ static bool Initialized;
  * @brief Retrieves the system time, in milliseconds.
  * @return The system time, in milliseconds.
  */
-uint32_t mstimer_now(void)
+uint32_t ubasic_mstimer_now(void)
 {
     struct timespec now;
     uint32_t ticks;

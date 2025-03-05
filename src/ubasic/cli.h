@@ -1,7 +1,7 @@
-#ifndef __CLI_H__
-#define __CLI_H__
+#ifndef __UBASIC_CLI_H__
+#define __UBASIC_CLI_H__
 
-#include "config.h"
+#include "ubasic.h"
 
 #define UBASIC_CLI_INIT       0
 #define UBASIC_CLI_IDLE       1
@@ -12,7 +12,7 @@
 #define UBASIC_SCRIPT_SIZE_MAX  (1024)
 #define UBASIC_STATEMENT_SIZE_MAX  (64)
 
-extern const char welcome_msg[];
-void ubasic_cli(void);
+const char *cli_welcome_msg(void);
+void ubasic_cli(struct ubasic_data *data);
 
 #endif

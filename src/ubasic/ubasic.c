@@ -61,11 +61,12 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data);
 /**
  * @brief Calculates the elapsed time since the given start time.
  * @param start The start time.
+ * @param now The current time.
  * @return The elapsed time, in milliseconds.
  */
-static uint32_t mstimer_since(uint32_t start)
+static uint32_t mstimer_since(uint32_t start, uint32_t now)
 {
-  return mstimer_now() - start;
+  return now - start;
 }
 
 /**
@@ -77,11 +78,12 @@ static uint32_t mstimer_since(uint32_t start)
  *
  * @param t A pointer to the timer
  * @param interval The interval before the timer expires.
+ * @param now The current time.
  */
-static void mstimer_set(struct ubasic_mstimer *t, uint32_t interval)
+static void mstimer_set(struct ubasic_mstimer *t, uint32_t interval, uint32_t now)
 {
   t->interval = interval;
-  t->start = mstimer_now();
+  t->start = now;
 }
 
 /**
@@ -104,13 +106,10 @@ static int mstimer_expired(const struct ubasic_mstimer *t, uint32_t now)
  * @param t A pointer to the timer
  * @return The time until the timer expires
  */
-static uint32_t mstimer_remaining(const struct ubasic_mstimer *t)
+static uint32_t mstimer_remaining(const struct ubasic_mstimer *t, uint32_t now)
 {
-  uint32_t now;
-
   if (t->interval)
   {
-    now = mstimer_now();
     if (!mstimer_expired(t, now))
     {
       return ((t->start + t->interval) - now);
@@ -128,17 +127,20 @@ static void timer_tic(struct ubasic_data *data, uint8_t ch)
   {
     return;
   }
-  data->tic_toc_timer[ch] = mstimer_now();
+  if ((data->mstimer_now))
+  {
+    data->tic_toc_timer[ch] = data->mstimer_now();
+  }
 }
 
 static int32_t timer_toc(struct ubasic_data *data, uint8_t ch)
 {
   uint32_t elapsed;
-  if (ch > UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
+  if ((ch > UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || (!data->mstimer_now))
   {
     return 0;
   }
-  elapsed = mstimer_since(data->tic_toc_timer[ch]);
+  elapsed = mstimer_since(data->tic_toc_timer[ch], data->mstimer_now());
   if (elapsed > INT32_MAX)
   {
     return INT32_MAX;
@@ -150,19 +152,28 @@ static int32_t timer_toc(struct ubasic_data *data, uint8_t ch)
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
 static void mstimer_sleep(struct ubasic_data *data, int32_t ms)
 {
-  mstimer_set(&data->sleep_timer, ms);
+  if (data->mstimer_now)
+  {
+    mstimer_set(&data->sleep_timer, ms, data->mstimer_now());
+  }
 }
 
 static int32_t mstimer_sleeping(struct ubasic_data *data)
 {
   int32_t ms;
-  ms = (int32_t)mstimer_remaining(&data->sleep_timer);
-  if (ms == 0)
+  if (data->mstimer_now)
   {
-    /* automatic disable */
-    data->sleep_timer.interval = 0;
+    ms = (int32_t)mstimer_remaining(&data->sleep_timer, data->mstimer_now());
+    if (ms == 0)
+    {
+      /* automatic disable */
+      data->sleep_timer.interval = 0;
+    }
   }
-
+  else
+  {
+    ms = 0;
+  }
   return ms;
 }
 #endif
@@ -170,17 +181,27 @@ static int32_t mstimer_sleeping(struct ubasic_data *data)
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
 static void mstimer_input_wait(struct ubasic_data *data, int32_t ms)
 {
-  mstimer_set(&data->input_wait_timer, ms);
+  if (data->mstimer_now)
+  {
+    mstimer_set(&data->input_wait_timer, ms, data->mstimer_now());
+  }
 }
 
 static int32_t mstimer_input_remaining(struct ubasic_data *data)
 {
   int32_t ms;
-  ms = (int32_t)mstimer_remaining(&data->input_wait_timer);
-  if (ms == 0)
+  if (data->mstimer_now)
   {
-    /* automatic disable */
-    data->input_wait_timer.interval = 0;
+    ms = (int32_t)mstimer_remaining(&data->input_wait_timer, data->mstimer_now());
+    if (ms == 0)
+    {
+      /* automatic disable */
+      data->input_wait_timer.interval = 0;
+    }
+  }
+  else
+  {
+    ms = 0;
   }
   return ms;
 }
@@ -933,13 +954,13 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     j = fixedpt_toint(j);
 #endif
-    if (j < 1 || j > UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
+    if (j < 1 || j > UBASIC_SCRIPT_HAVE_PWM_CHANNELS || !data->pwm_read)
     {
       r = -1;
     }
     else
     {
-      r = Analog_Output_Read(j - 1);
+      r = data->pwm_read(j - 1);
     }
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
@@ -1268,7 +1289,10 @@ static void pwm_statement(struct ubasic_data *data)
 
   if (j >= 1 && j <= UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
   {
-    Analog_Output_Write(j - 1, r);
+    if (data->pwm_write)
+    {
+      data->pwm_write(j - 1, r);
+    }
   }
 
   accept_cr(tree);
@@ -1296,7 +1320,10 @@ static void pwmconf_statement(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
   r = fixedpt_toint(r);
 #endif
-  Analog_Output_Config(j, r);
+  if (data->pwm_config)
+  {
+    data->pwm_config(j, r);
+  }
   r = 0;
   accept(tree, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
