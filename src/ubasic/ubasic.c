@@ -55,6 +55,72 @@ static void statement(struct ubasic_data *data);
 static VARIABLE_TYPE recall_statement(struct ubasic_data *data);
 #endif
 
+#if (defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
+     defined(UBASIC_SCRIPT_HAVE_SLEEP) ||           \
+     defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
+/**
+ * @brief Calculates the elapsed time since the given start time.
+ * @param start The start time.
+ * @return The elapsed time, in milliseconds.
+ */
+static uint32_t mstimer_since(uint32_t start)
+{
+  return mstimer_now() - start;
+}
+
+/**
+ * @brief Set a timer for a time sometime in the future
+ *
+ * This function is used to set a timer for a time sometime in the
+ * future. The function mstimer_remaining() will determine how much time
+ * is left until the timer expires.
+ *
+ * @param t A pointer to the timer
+ * @param interval The interval before the timer expires.
+ */
+static void mstimer_set(struct ubasic_mstimer *t, uint32_t interval)
+{
+  t->interval = interval;
+  t->start = mstimer_now();
+}
+
+/**
+ * @brief Check if a timer has expired.
+ *
+ * This function tests if a timer has expired and returns true or
+ * false depending on its status.
+ *
+ * @param t A pointer to the timer
+ * @param now The current time.
+ * @return Non-zero if the timer has expired, zero otherwise.
+ */
+static int mstimer_expired(const struct ubasic_mstimer *t, uint32_t now)
+{
+  return ((now - (t->start + t->interval)) < ((uint32_t)(~((uint32_t)0)) >> 1));
+}
+
+/**
+ * @brief The amount of time until the timer expires
+ * @param t A pointer to the timer
+ * @return The time until the timer expires
+ */
+static uint32_t mstimer_remaining(const struct ubasic_mstimer *t)
+{
+  uint32_t now;
+
+  if (t->interval)
+  {
+    now = mstimer_now();
+    if (!mstimer_expired(t, now))
+    {
+      return ((t->start + t->interval) - now);
+    }
+  }
+
+  return 0;
+}
+#endif
+
 #if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
 static void timer_tic(struct ubasic_data *data, uint8_t ch)
 {
@@ -62,7 +128,7 @@ static void timer_tic(struct ubasic_data *data, uint8_t ch)
   {
     return;
   }
-  data->tic_toc_timer[ch] = timer_now();
+  data->tic_toc_timer[ch] = mstimer_now();
 }
 
 static int32_t timer_toc(struct ubasic_data *data, uint8_t ch)
@@ -72,7 +138,7 @@ static int32_t timer_toc(struct ubasic_data *data, uint8_t ch)
   {
     return 0;
   }
-  elapsed = timer_since(data->tic_toc_timer[ch]);
+  elapsed = mstimer_since(data->tic_toc_timer[ch]);
   if (elapsed > INT32_MAX)
   {
     return INT32_MAX;
@@ -82,70 +148,41 @@ static int32_t timer_toc(struct ubasic_data *data, uint8_t ch)
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-static void timer_sleep(struct ubasic_data *data, int32_t ms)
+static void mstimer_sleep(struct ubasic_data *data, int32_t ms)
 {
-  data->sleep_timer.duration = ms;
-  data->sleep_timer.start = timer_now();
+  mstimer_set(&data->sleep_timer, ms);
 }
 
-static int32_t timer_sleeping(struct ubasic_data *data)
+static int32_t mstimer_sleeping(struct ubasic_data *data)
 {
-  uint32_t remaining;
-  uint32_t elapsed;
-
-  if (data->sleep_timer.duration > 0)
+  int32_t ms;
+  ms = (int32_t)mstimer_remaining(&data->sleep_timer);
+  if (ms == 0)
   {
-    elapsed = timer_since(data->sleep_timer.start);
-    if (elapsed < data->sleep_timer.duration)
-    {
-      remaining = data->sleep_timer.duration - elapsed;
-      if (remaining > INT32_MAX)
-      {
-        return INT32_MAX;
-      }
-      return (int32_t)remaining;
-    }
-    else
-    {
-      data->sleep_timer.duration = 0;
-    }
+    /* automatic disable */
+    data->sleep_timer.interval = 0;
   }
 
-  return 0;
+  return ms;
 }
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
-static void timer_input_wait(struct ubasic_data *data, int32_t ms)
+static void mstimer_input_wait(struct ubasic_data *data, int32_t ms)
 {
-  data->input_wait_timer.duration = ms;
-  data->input_wait_timer.start = timer_now();
+  mstimer_set(&data->input_wait_timer, ms);
 }
 
-static int32_t timer_input_remaining(struct ubasic_data *data)
+static int32_t mstimer_input_remaining(struct ubasic_data *data)
 {
-  uint32_t remaining;
-  uint32_t elapsed;
-
-  if (data->input_wait_timer.duration > 0)
+  int32_t ms;
+  ms = (int32_t)mstimer_remaining(&data->input_wait_timer);
+  if (ms == 0)
   {
-    elapsed = timer_since(data->input_wait_timer.start);
-    if (elapsed < data->input_wait_timer.duration)
-    {
-      remaining = data->input_wait_timer.duration - elapsed;
-      if (remaining > INT32_MAX)
-      {
-        return INT32_MAX;
-      }
-      return (int32_t)remaining;
-    }
-    else
-    {
-      data->input_wait_timer.duration = 0;
-    }
+    /* automatic disable */
+    data->input_wait_timer.interval = 0;
   }
-
-  return 0;
+  return ms;
 }
 #endif
 
@@ -1857,7 +1894,7 @@ static void sleep_statement(struct ubasic_data *data)
   {
     r = 0;
   }
-  timer_sleep(data, r);
+  mstimer_sleep(data, r);
 
   accept_cr(tree);
 }
@@ -1943,7 +1980,7 @@ static void input_statement_wait(struct ubasic_data *data)
 #endif
     if (r > 0)
     {
-      timer_input_wait(data, r);
+      mstimer_input_wait(data, r);
     }
   }
 
@@ -2395,7 +2432,7 @@ void ubasic_run_program(struct ubasic_data *data)
     return;
   }
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-  if (timer_sleeping(data) > 0)
+  if (mstimer_sleeping(data) > 0)
     return;
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
@@ -2403,7 +2440,7 @@ void ubasic_run_program(struct ubasic_data *data)
   {
     if (serial_input_available() == 0)
     {
-      if (timer_input_remaining(data) > 0)
+      if (mstimer_input_remaining(data) > 0)
         return;
     }
     serial_input_completed(data);
@@ -2446,7 +2483,7 @@ uint8_t ubasic_execute_statement(struct ubasic_data *data, char *stmt)
     {
       if (serial_input_available() == 0)
       {
-        if (timer_input_remaining(data) > 0)
+        if (mstimer_input_remaining(data) > 0)
           continue;
       }
       serial_input_completed(data);
@@ -2454,7 +2491,7 @@ uint8_t ubasic_execute_statement(struct ubasic_data *data, char *stmt)
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-    while (timer_sleeping(data) > 0)
+    while (mstimer_sleeping(data) > 0)
     {
       /* FIXME: maybe just a return until the sleep is over? */
     }

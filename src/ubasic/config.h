@@ -186,9 +186,10 @@ int16_t Analog_Output_Read(uint8_t ch);
 //    sets the n-th variable to 0, while
 //        toc(n)
 //    returns how many ms has passed since tic(n) was called.
-#if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || defined(UBASIC_SCRIPT_HAVE_SLEEP)
-uint32_t timer_now(void);
-uint32_t timer_since(uint32_t start);
+#if (defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
+     defined(UBASIC_SCRIPT_HAVE_SLEEP) || \
+     defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL))
+uint32_t mstimer_now(void);
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)

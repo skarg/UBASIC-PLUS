@@ -87,9 +87,15 @@ struct ubasic_while_state
 #define MAX_GOSUB_STACK_DEPTH 10
 #define MAX_IF_STACK_DEPTH 4
 
-struct ubasic_timer_wait {
+/**
+ * A timer.
+ *
+ * This structure is used for declaring a timer. The timer must be set
+ * with mstimer_set() before it can be used.
+ */
+struct ubasic_mstimer {
     uint32_t start;
-    uint32_t duration;
+    uint32_t interval;
 };
 
 struct ubasic_data
@@ -140,8 +146,8 @@ struct ubasic_data
     uint32_t tic_toc_timer[UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS];
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
-    struct ubasic_timer_wait input_wait_timer;
-    struct ubasic_timer_wait sleep_timer;
+    struct ubasic_mstimer input_wait_timer;
+    struct ubasic_mstimer sleep_timer;
     #endif
 };
 

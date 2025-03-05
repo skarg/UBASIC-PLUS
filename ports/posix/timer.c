@@ -9,15 +9,12 @@
 /* start time for the clock */
 static struct timespec Start;
 static bool Initialized;
-#ifndef CONFIG_UBASIC_TIMER_TIC_TOC_MAX
-#define CONFIG_UBASIC_TIMER_TIC_TOC_MAX 128
-#endif
 
 /**
  * @brief Retrieves the system time, in milliseconds.
  * @return The system time, in milliseconds.
  */
-uint32_t timer_now(void)
+uint32_t mstimer_now(void)
 {
     struct timespec now;
     uint32_t ticks;
@@ -37,14 +34,4 @@ uint32_t timer_now(void)
     }
 
     return ticks;
-}
-
-/**
- * @brief Calculates the elapsed time since the given start time.
- * @param start The start time.
- * @return The elapsed time, in milliseconds.
- */
-uint32_t timer_since(uint32_t start)
-{
-    return timer_now() - start;
 }
