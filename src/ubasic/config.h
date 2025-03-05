@@ -171,21 +171,4 @@
 #define MAX_SVARNUM 26
 #endif
 
-
-#if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
-void print_serial(const char *msg);
-void print_serial_n(const char *msg, uint16_t n);
-void print_numbered_lines(const char *script);
-#else
-void print_serial(const char *msg) { ; }
-void print_serial_n(const char *msg, uint16_t n) { ; }
-void print_numbered_lines(const char *script) { ; }
-#endif
-
-#if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
-#define UBASIC_SERIAL_INPUT_MS 50
-uint8_t serial_input_available();
-uint8_t serial_input(char *buffer, uint8_t len);
-#endif
-
 #endif /* #ifndef _CONFIG_H_ */

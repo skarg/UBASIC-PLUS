@@ -191,9 +191,7 @@ VARIABLE_TYPE tokenizer_float(struct tokenizer_data *data);
 #endif
 
 uint8_t tokenizer_variable_num(struct tokenizer_data *data);
-
 bool tokenizer_finished(struct tokenizer_data *data);
-void tokenizer_error_print(struct tokenizer_data *data, VARIABLE_TYPE token);
 
 #if defined(VARIABLE_TYPE_STRING)
 void tokenizer_string(struct tokenizer_data *data, char *dest, uint8_t len);

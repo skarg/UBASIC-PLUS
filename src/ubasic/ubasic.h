@@ -87,6 +87,8 @@ struct ubasic_while_state
 #define MAX_GOSUB_STACK_DEPTH 10
 #define MAX_IF_STACK_DEPTH 4
 
+#define UBASIC_SERIAL_INPUT_MS 50
+
 /**
  * A timer.
  *
@@ -181,6 +183,14 @@ struct ubasic_data
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
     void (*flash_write)(uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr);
     void (*flash_read)(uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen);
+#endif
+#if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
+    uint8_t (*serial_read_available)();
+    uint8_t (*serial_read)(char *buffer, uint8_t len);
+#endif
+#if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
+    void (*serial_write_string)(const char *msg);
+    void (*serial_write)(const char *buffer, uint16_t n);
 #endif
 };
 

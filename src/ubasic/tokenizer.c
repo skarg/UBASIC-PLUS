@@ -642,26 +642,6 @@ void tokenizer_label(struct tokenizer_data *tree, char *dest, uint8_t len)
 }
 
 /*---------------------------------------------------------------------------*/
-void tokenizer_error_print(struct tokenizer_data *tree, VARIABLE_TYPE token)
-{
-  char msg[32];
-  const char *name;
-
-  print_serial("Err");
-  name = tokenizer_name(token);
-  if (name)
-  {
-    snprintf(msg, sizeof(msg), "[%s]:", name);
-  }
-  else
-  {
-    snprintf(msg, sizeof(msg), "[%u]:", (unsigned)token);
-  }
-  print_serial(msg);
-  print_serial(tree->ptr - 1);
-  print_serial("\n");
-}
-/*---------------------------------------------------------------------------*/
 bool tokenizer_finished(struct tokenizer_data *tree)
 {
   return ((*tree->ptr == 0) || (tree->current_token == TOKENIZER_ENDOFINPUT));

@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 project(posix)
 
 add_library(${PROJECT_NAME}
-    serial.c
     ubasic-posix.c
 )
 

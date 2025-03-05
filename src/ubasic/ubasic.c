@@ -251,12 +251,35 @@ void ubasic_load_program(struct ubasic_data *data, const char *program)
   }
 }
 /*---------------------------------------------------------------------------*/
-static uint8_t accept(struct tokenizer_data *tree, VARIABLE_TYPE token)
+static void token_error_print(struct ubasic_data *data, VARIABLE_TYPE token)
 {
+  char msg[32];
+  const char *name;
+  struct tokenizer_data *tree = &data->tree;
+
+  data->serial_write_string("Err");
+  name = tokenizer_name(token);
+  if (name)
+  {
+    snprintf(msg, sizeof(msg), "[%s]:", name);
+  }
+  else
+  {
+    snprintf(msg, sizeof(msg), "[%u]:", (unsigned)token);
+  }
+  data->serial_write_string(msg);
+  data->serial_write_string(tree->ptr - 1);
+  data->serial_write_string("\n");
+}
+
+/*---------------------------------------------------------------------------*/
+static uint8_t accept(struct ubasic_data *data, VARIABLE_TYPE token)
+{
+  struct tokenizer_data *tree = &data->tree;
 
   if (token != tokenizer_token(tree))
   {
-    tokenizer_error_print(tree, token);
+    token_error_print(data, token);
     return 1;
   }
 
@@ -528,55 +551,55 @@ static int16_t sfactor(struct ubasic_data *data)
   switch (tokenizer_token(tree))
   {
   case TOKENIZER_LEFTPAREN:
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = sexpr(data);
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_STRING:
     tokenizer_string(tree, tmpstring, MAX_STRINGLEN);
     r = scpy(data, tmpstring);
-    accept(tree, TOKENIZER_STRING);
+    accept(data, TOKENIZER_STRING);
     break;
 
   case TOKENIZER_LEFT$:
-    accept(tree, TOKENIZER_LEFT$);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_LEFT$);
+    accept(data, TOKENIZER_LEFTPAREN);
     s = sexpr(data);
-    accept(tree, TOKENIZER_COMMA);
+    accept(data, TOKENIZER_COMMA);
     i = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     i = fixedpt_toint(i);
 #endif
     r = sleft(data, strptr(data, s), i);
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_RIGHT$:
-    accept(tree, TOKENIZER_RIGHT$);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_RIGHT$);
+    accept(data, TOKENIZER_LEFTPAREN);
     s = sexpr(data);
-    accept(tree, TOKENIZER_COMMA);
+    accept(data, TOKENIZER_COMMA);
     i = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     i = fixedpt_toint(i);
 #endif
     r = sright(data, strptr(data, s), i);
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_MID$:
-    accept(tree, TOKENIZER_MID$);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_MID$);
+    accept(data, TOKENIZER_LEFTPAREN);
     s = sexpr(data);
-    accept(tree, TOKENIZER_COMMA);
+    accept(data, TOKENIZER_COMMA);
     i = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     i = fixedpt_toint(i);
 #endif
     if (tokenizer_token(tree) == TOKENIZER_COMMA)
     {
-      accept(tree, TOKENIZER_COMMA);
+      accept(data, TOKENIZER_COMMA);
       j = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
       j = fixedpt_toint(j);
@@ -587,11 +610,11 @@ static int16_t sfactor(struct ubasic_data *data)
       j = 999; // ensure we get all of it
     }
     r = smid(data, strptr(data, s), i, j);
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_STR$:
-    accept(tree, TOKENIZER_STR$);
+    accept(data, TOKENIZER_STR$);
     j = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     j = fixedpt_toint(j);
@@ -600,7 +623,7 @@ static int16_t sfactor(struct ubasic_data *data)
     break;
 
   case TOKENIZER_CHR$:
-    accept(tree, TOKENIZER_CHR$);
+    accept(data, TOKENIZER_CHR$);
     j = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     j = fixedpt_toint(j);
@@ -612,7 +635,7 @@ static int16_t sfactor(struct ubasic_data *data)
 
   default:
     r = ubasic_get_stringvariable(data, tokenizer_variable_num(tree));
-    accept(tree, TOKENIZER_STRINGVARIABLE);
+    accept(data, TOKENIZER_STRINGVARIABLE);
   }
 
   return r;
@@ -659,7 +682,7 @@ static VARIABLE_TYPE varfactor(struct ubasic_data *data)
   struct tokenizer_data *tree = &data->tree;
 
   r = ubasic_get_variable(data, tokenizer_variable_num(tree));
-  accept(tree, TOKENIZER_VARIABLE);
+  accept(data, TOKENIZER_VARIABLE);
   return r;
 }
 /*---------------------------------------------------------------------------*/
@@ -679,7 +702,7 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
   {
 #if defined(VARIABLE_TYPE_STRING)
   case TOKENIZER_LEN:
-    accept(tree, TOKENIZER_LEN);
+    accept(data, TOKENIZER_LEN);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(strlen(strptr(data, sexpr(data))));
 #else
@@ -688,7 +711,7 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
     break;
 
   case TOKENIZER_VAL:
-    accept(tree, TOKENIZER_VAL);
+    accept(data, TOKENIZER_VAL);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     s1 = sexpr(data);
     r = str_fixedpt(strptr(data, s1), strlen(strptr(data, s1)), 3);
@@ -698,7 +721,7 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
     break;
 
   case TOKENIZER_ASC:
-    accept(tree, TOKENIZER_ASC);
+    accept(data, TOKENIZER_ASC);
     s = sexpr(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(*strptr(data, s));
@@ -708,21 +731,21 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
     break;
 
   case TOKENIZER_INSTR:
-    accept(tree, TOKENIZER_INSTR);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_INSTR);
+    accept(data, TOKENIZER_LEFTPAREN);
     j = 1;
     if (tokenizer_token(tree) == TOKENIZER_NUMBER)
     {
       j = tokenizer_num(tree);
-      accept(tree, TOKENIZER_NUMBER);
-      accept(tree, TOKENIZER_COMMA);
+      accept(data, TOKENIZER_NUMBER);
+      accept(data, TOKENIZER_COMMA);
     }
     if (j < 1)
       return 0;
     s = sexpr(data);
-    accept(tree, TOKENIZER_COMMA);
+    accept(data, TOKENIZER_COMMA);
     s1 = sexpr(data);
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     r = sinstr(j, strptr(data, s), strptr(data, s1));
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
@@ -731,24 +754,24 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #endif
 
   case TOKENIZER_MINUS:
-    accept(tree, TOKENIZER_MINUS);
+    accept(data, TOKENIZER_MINUS);
     r = -factor(data);
     break;
 
   case TOKENIZER_LNOT:
-    accept(tree, TOKENIZER_LNOT);
+    accept(data, TOKENIZER_LNOT);
     r = !relation(data);
     break;
 
   case TOKENIZER_NOT:
-    accept(tree, TOKENIZER_LNOT);
+    accept(data, TOKENIZER_LNOT);
     r = ~relation(data);
     break;
 
 #if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
   case TOKENIZER_TOC:
-    accept(tree, TOKENIZER_TOC);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_TOC);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_toint(r);
@@ -756,15 +779,15 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
     r = timer_toc(data, r);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
 #endif
     break;
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
   case TOKENIZER_HWE:
-    accept(tree, TOKENIZER_HWE);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_HWE);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_toint(r);
@@ -790,13 +813,13 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
         r = 0;
       }
     }
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 #endif /* #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS) */
 
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
   case TOKENIZER_RAN:
-    accept(tree, TOKENIZER_RAN);
+    accept(data, TOKENIZER_RAN);
     if (data->random_uint32)
     {
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
@@ -816,77 +839,77 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #endif
 
   case TOKENIZER_ABS:
-    accept(tree, TOKENIZER_ABS);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_ABS);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = relation(data);
     if (r < 0)
       r = -r;
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
   case TOKENIZER_POWER:
-    accept(tree, TOKENIZER_POWER);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_POWER);
+    accept(data, TOKENIZER_LEFTPAREN);
     // argument:
     i = relation(data);
-    accept(tree, TOKENIZER_COMMA);
+    accept(data, TOKENIZER_COMMA);
     // exponent
     j = relation(data);
     r = fixedpt_pow(i, j);
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_FLOAT:
     r = tokenizer_float(tree); /* 24.8 decimal number */
-    accept(tree, TOKENIZER_FLOAT);
+    accept(data, TOKENIZER_FLOAT);
     break;
 
   case TOKENIZER_SQRT:
-    accept(tree, TOKENIZER_SQRT);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_SQRT);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = fixedpt_sqrt(relation(data));
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_SIN:
-    accept(tree, TOKENIZER_SIN);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_SIN);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = fixedpt_sin(relation(data));
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_COS:
-    accept(tree, TOKENIZER_COS);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_COS);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = fixedpt_cos(relation(data));
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_TAN:
-    accept(tree, TOKENIZER_TAN);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_TAN);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = fixedpt_tan(relation(data));
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_EXP:
-    accept(tree, TOKENIZER_EXP);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_EXP);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = fixedpt_exp(relation(data));
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_LN:
-    accept(tree, TOKENIZER_LN);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_LN);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = fixedpt_ln(relation(data));
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
   case TOKENIZER_UNIFORM:
-    accept(tree, TOKENIZER_UNIFORM);
+    accept(data, TOKENIZER_UNIFORM);
     if (data->random_uint32)
     {
       r = data->random_uint32(FIXEDPT_FBITS) & FIXEDPT_FMASK;
@@ -899,8 +922,8 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #endif
 
   case TOKENIZER_FLOOR:
-    accept(tree, TOKENIZER_FLOOR);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_FLOOR);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = relation(data);
     if (r >= 0)
     {
@@ -913,12 +936,12 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
       if (f > 0)
         r -= FIXEDPT_ONE;
     }
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_CEIL:
-    accept(tree, TOKENIZER_CEIL);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_CEIL);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = relation(data);
     if (r >= 0)
     {
@@ -931,12 +954,12 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
     {
       r = r & (~FIXEDPT_FMASK);
     }
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
   case TOKENIZER_ROUND:
-    accept(tree, TOKENIZER_ROUND);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_ROUND);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = relation(data);
     uint32_t f = (r & FIXEDPT_FMASK);
     if (r >= 0)
@@ -951,13 +974,13 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
       if (f <= FIXEDPT_ONE_HALF)
         r -= FIXEDPT_ONE;
     }
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 #endif /* #if defined(VARIABLE_TYPE_FLOAT_AS ... */
 
   case TOKENIZER_INT:
     r = tokenizer_int(tree);
-    accept(tree, TOKENIZER_INT);
+    accept(data, TOKENIZER_INT);
     break;
 
   case TOKENIZER_NUMBER:
@@ -965,13 +988,13 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
 #endif
-    accept(tree, TOKENIZER_NUMBER);
+    accept(data, TOKENIZER_NUMBER);
     break;
 
 #ifdef UBASIC_SCRIPT_HAVE_PWM_CHANNELS
   case TOKENIZER_PWM:
-    accept(tree, TOKENIZER_PWM);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_PWM);
+    accept(data, TOKENIZER_LEFTPAREN);
     // single argument: channel
     j = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
@@ -988,14 +1011,14 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
 #endif
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 #endif
 
 #if defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
   case TOKENIZER_AREAD:
-    accept(tree, TOKENIZER_AREAD);
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_AREAD);
+    accept(data, TOKENIZER_LEFTPAREN);
     // single argument: channel as hex value
     j = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
@@ -1010,20 +1033,20 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
 #endif
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 #endif
 
   case TOKENIZER_LEFTPAREN:
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = relation(data);
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 
 #if defined(VARIABLE_TYPE_ARRAY)
   case TOKENIZER_ARRAYVARIABLE:
     varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_ARRAYVARIABLE);
+    accept(data, TOKENIZER_ARRAYVARIABLE);
     j = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     j = fixedpt_toint(j);
@@ -1034,13 +1057,13 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 
 #if defined(UBASIC_SCRIPT_HAVE_GPIO_CHANNELS)
   case TOKENIZER_DREAD:
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_LEFTPAREN);
     r = relation(data);
     if (data->gpio_read)
     {
       r = data->gpio_read(r);
     }
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     break;
 #endif /* UBASIC_SCRIPT_HAVE_GPIO_CHANNELS */
 
@@ -1207,7 +1230,7 @@ static uint8_t jump_label(struct ubasic_data *data, char *label)
         tokenizer_label(tree, currLabel, sizeof(currLabel));
         if (strcmp(label, currLabel) == 0)
         {
-          accept(tree, TOKENIZER_LABEL);
+          accept(data, TOKENIZER_LABEL);
           return 1;
         }
       }
@@ -1225,7 +1248,7 @@ static void gosub_statement(struct ubasic_data *data)
   char tmpstring[MAX_STRINGLEN];
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_GOSUB);
+  accept(data, TOKENIZER_GOSUB);
   if (tokenizer_token(tree) == TOKENIZER_LABEL)
   {
     // copy label
@@ -1248,7 +1271,7 @@ static void gosub_statement(struct ubasic_data *data)
     }
   }
 
-  tokenizer_error_print(tree, TOKENIZER_GOSUB);
+  token_error_print(data, TOKENIZER_GOSUB);
   data->status.bit.isRunning = 0;
   data->status.bit.Error = 1;
 }
@@ -1257,7 +1280,7 @@ static void return_statement(struct ubasic_data *data)
 {
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_RETURN);
+  accept(data, TOKENIZER_RETURN);
   if (data->gosub_stack_ptr > 0)
   {
     data->gosub_stack_ptr--;
@@ -1265,7 +1288,7 @@ static void return_statement(struct ubasic_data *data)
     tokenizer_jump_offset(tree, data->gosub_stack[data->gosub_stack_ptr]);
     return;
   }
-  tokenizer_error_print(tree, TOKENIZER_RETURN);
+  token_error_print(data, TOKENIZER_RETURN);
   data->status.bit.isRunning = 0;
   data->status.bit.Error = 1;
 }
@@ -1275,7 +1298,7 @@ static void goto_statement(struct ubasic_data *data)
   char tmpstring[MAX_STRINGLEN];
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_GOTO);
+  accept(data, TOKENIZER_GOTO);
 
   if (tokenizer_token(tree) == TOKENIZER_LABEL)
   {
@@ -1285,7 +1308,7 @@ static void goto_statement(struct ubasic_data *data)
     return;
   }
 
-  tokenizer_error_print(tree, TOKENIZER_GOTO);
+  token_error_print(data, TOKENIZER_GOTO);
   data->status.bit.isRunning = 0;
   data->status.bit.Error = 1;
 }
@@ -1297,9 +1320,9 @@ static void pwm_statement(struct ubasic_data *data)
   VARIABLE_TYPE j, r;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_PWM);
+  accept(data, TOKENIZER_PWM);
 
-  accept(tree, TOKENIZER_LEFTPAREN);
+  accept(data, TOKENIZER_LEFTPAREN);
 
   // first argument: channel
   j = relation(data);
@@ -1309,14 +1332,14 @@ static void pwm_statement(struct ubasic_data *data)
   if (j < 1 || j > 4)
     return;
 
-  accept(tree, TOKENIZER_COMMA);
+  accept(data, TOKENIZER_COMMA);
 
   // second argument: value
   r = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
   r = fixedpt_toint(r);
 #endif
-  accept(tree, TOKENIZER_RIGHTPAREN);
+  accept(data, TOKENIZER_RIGHTPAREN);
 
   if (j >= 1 && j <= UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
   {
@@ -1335,8 +1358,8 @@ static void pwmconf_statement(struct ubasic_data *data)
   VARIABLE_TYPE j, r;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_PWMCONF);
-  accept(tree, TOKENIZER_LEFTPAREN);
+  accept(data, TOKENIZER_PWMCONF);
+  accept(data, TOKENIZER_LEFTPAREN);
   // first argument: prescaler 0...
   j = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
@@ -1345,7 +1368,7 @@ static void pwmconf_statement(struct ubasic_data *data)
   if (j < 0)
     j = 0;
 
-  accept(tree, TOKENIZER_COMMA);
+  accept(data, TOKENIZER_COMMA);
   r = relation(data);
   // second argument: period
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
@@ -1356,7 +1379,7 @@ static void pwmconf_statement(struct ubasic_data *data)
     data->pwm_config(j, r);
   }
   r = 0;
-  accept(tree, TOKENIZER_RIGHTPAREN);
+  accept(data, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
 }
 
@@ -1368,8 +1391,8 @@ static void areadconf_statement(struct ubasic_data *data)
   VARIABLE_TYPE j, r;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_AREADCONF);
-  accept(tree, TOKENIZER_LEFTPAREN);
+  accept(data, TOKENIZER_AREADCONF);
+  accept(data, TOKENIZER_LEFTPAREN);
   // first argument: sampletime 0...7 on STM32
   j = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
@@ -1379,7 +1402,7 @@ static void areadconf_statement(struct ubasic_data *data)
     j = 0;
   if (j > 7)
     j = 7;
-  accept(tree, TOKENIZER_COMMA);
+  accept(data, TOKENIZER_COMMA);
   r = relation(data);
   // second argument: number of analog sample to average from
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
@@ -1389,7 +1412,7 @@ static void areadconf_statement(struct ubasic_data *data)
   {
     data->adc_config(j, r);
   }
-  accept(tree, TOKENIZER_RIGHTPAREN);
+  accept(data, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
 }
 #endif
@@ -1400,15 +1423,15 @@ static void pinmode_statement(struct ubasic_data *data)
   VARIABLE_TYPE i, j, r;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_PINMODE);
-  accept(tree, TOKENIZER_LEFTPAREN);
+  accept(data, TOKENIZER_PINMODE);
+  accept(data, TOKENIZER_LEFTPAREN);
 
   // channel - should be entered as 0x..
   i = relation(data);
   if (i < 0xa0 || i > 0xff)
     return;
 
-  accept(tree, TOKENIZER_COMMA);
+  accept(data, TOKENIZER_COMMA);
 
   // mode
   j = relation(data);
@@ -1422,7 +1445,7 @@ static void pinmode_statement(struct ubasic_data *data)
   if (j > 2)
     j = 0;
 
-  accept(tree, TOKENIZER_COMMA);
+  accept(data, TOKENIZER_COMMA);
 
   // speed
   r = relation(data);
@@ -1432,7 +1455,7 @@ static void pinmode_statement(struct ubasic_data *data)
   if (r < 0 || r > 2)
     r = 0;
 
-  accept(tree, TOKENIZER_RIGHTPAREN);
+  accept(data, TOKENIZER_RIGHTPAREN);
   if (data->gpio_config)
   {
     data->gpio_config((uint8_t)i, (int8_t)j, (int8_t)r);
@@ -1448,14 +1471,14 @@ static void dwrite_statemet(struct ubasic_data *data)
   VARIABLE_TYPE j, r;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_DWRITE);
-  accept(tree, TOKENIZER_LEFTPAREN);
+  accept(data, TOKENIZER_DWRITE);
+  accept(data, TOKENIZER_LEFTPAREN);
   j = relation(data);
-  accept(tree, TOKENIZER_COMMA);
+  accept(data, TOKENIZER_COMMA);
   r = relation(data);
   if (r)
     r = 0x01;
-  accept(tree, TOKENIZER_RIGHTPAREN);
+  accept(data, TOKENIZER_RIGHTPAREN);
   if (data->gpio_write)
   {
     data->gpio_write(j, r);
@@ -1478,9 +1501,9 @@ static void print_statement(struct ubasic_data *data, uint8_t println)
 
   // string additions
   if (println)
-    accept(tree, TOKENIZER_PRINTLN);
+    accept(data, TOKENIZER_PRINTLN);
   else
-    accept(tree, TOKENIZER_PRINT);
+    accept(data, TOKENIZER_PRINT);
   do
   {
     if (tokenizer_token(tree) == TOKENIZER_PRINT_HEX)
@@ -1535,28 +1558,27 @@ static void print_statement(struct ubasic_data *data, uint8_t println)
       }
       // end of string additions
     }
-    print_serial(tmpstring);
+    data->serial_write_string(tmpstring);
   } while (tokenizer_token(tree) != TOKENIZER_EOL &&
            tokenizer_token(tree) != TOKENIZER_ENDOFINPUT);
 
   // printf("\n");
   if (println)
-    print_serial("\n");
+    data->serial_write_string("\n");
 
   accept_cr(tree);
 }
 /*---------------------------------------------------------------------------*/
 static void endif_statement(struct ubasic_data *data)
 {
-  struct tokenizer_data *tree = &data->tree;
   if (data->if_stack_ptr > 0)
   {
-    accept(tree, TOKENIZER_ENDIF);
-    accept(tree, TOKENIZER_EOL);
+    accept(data, TOKENIZER_ENDIF);
+    accept(data, TOKENIZER_EOL);
     data->if_stack_ptr--;
     return;
   }
-  tokenizer_error_print(tree, TOKENIZER_IF);
+  token_error_print(data, TOKENIZER_IF);
   data->status.bit.isRunning = 0;
   data->status.bit.Error = 1;
   return;
@@ -1567,13 +1589,13 @@ static void if_statement(struct ubasic_data *data)
   int8_t else_cntr, endif_cntr, f_nt, f_sl;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_IF);
+  accept(data, TOKENIZER_IF);
 
   VARIABLE_TYPE r = relation(data);
 
-  if (accept(tree, TOKENIZER_THEN))
+  if (accept(data, TOKENIZER_THEN))
   {
-    tokenizer_error_print(tree, TOKENIZER_IF);
+    token_error_print(data, TOKENIZER_IF);
     data->status.bit.isRunning = 0;
     data->status.bit.Error = 1;
     return;
@@ -1590,12 +1612,12 @@ static void if_statement(struct ubasic_data *data)
     }
     else
     {
-      tokenizer_error_print(tree, TOKENIZER_IF);
+      token_error_print(data, TOKENIZER_IF);
       data->status.bit.isRunning = 0;
       data->status.bit.Error = 1;
       return;
     }
-    accept(tree, TOKENIZER_EOL);
+    accept(data, TOKENIZER_EOL);
     if (r)
       return;
     else
@@ -1631,7 +1653,7 @@ static void if_statement(struct ubasic_data *data)
           else_cntr--;
           if (else_cntr < 0)
           {
-            tokenizer_error_print(tree, TOKENIZER_IF);
+            token_error_print(data, TOKENIZER_IF);
             data->status.bit.isRunning = 0;
             data->status.bit.Error = 1;
             return;
@@ -1657,7 +1679,7 @@ static void if_statement(struct ubasic_data *data)
           {
             if (tokenizer_token(tree) == TOKENIZER_ENDIF)
             {
-              tokenizer_error_print(tree, TOKENIZER_IF);
+              token_error_print(data, TOKENIZER_IF);
               data->status.bit.isRunning = 0;
               data->status.bit.Error = 1;
               return;
@@ -1690,7 +1712,7 @@ static void if_statement(struct ubasic_data *data)
                tokenizer_token(tree) != TOKENIZER_ENDOFINPUT);
       if (tokenizer_token(tree) == TOKENIZER_ELSE)
       {
-        accept(tree, TOKENIZER_ELSE);
+        accept(data, TOKENIZER_ELSE);
         tokenizer_next(tree);
         statement(data);
       }
@@ -1706,7 +1728,7 @@ static void else_statement(struct ubasic_data *data)
   uint8_t endif_cntr, f_nt;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_ELSE);
+  accept(data, TOKENIZER_ELSE);
 
   if (data->if_stack_ptr > 0)
   {
@@ -1714,14 +1736,14 @@ static void else_statement(struct ubasic_data *data)
   }
   else
   {
-    tokenizer_error_print(tree, TOKENIZER_ELSE);
+    token_error_print(data, TOKENIZER_ELSE);
     data->status.bit.isRunning = 0;
     data->status.bit.Error = 1;
     return;
   }
   if (tokenizer_token(tree) == TOKENIZER_EOL)
   {
-    accept(tree, TOKENIZER_EOL);
+    accept(data, TOKENIZER_EOL);
     if (!r)
       return;
     else
@@ -1752,7 +1774,7 @@ static void else_statement(struct ubasic_data *data)
             }
             if (tokenizer_token(tree) == TOKENIZER_ENDIF)
             {
-              tokenizer_error_print(tree, TOKENIZER_ELSE);
+              token_error_print(data, TOKENIZER_ELSE);
               data->status.bit.isRunning = 0;
               data->status.bit.Error = 1;
               return;
@@ -1768,7 +1790,7 @@ static void else_statement(struct ubasic_data *data)
     endif_statement(data);
     return;
   }
-  tokenizer_error_print(tree, TOKENIZER_ELSE);
+  token_error_print(data, TOKENIZER_ELSE);
   data->status.bit.isRunning = 0;
   data->status.bit.Error = 1;
   return;
@@ -1783,8 +1805,8 @@ static void let_statement(struct ubasic_data *data)
   if (tokenizer_token(tree) == TOKENIZER_VARIABLE)
   {
     varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_VARIABLE);
-    if (!accept(tree, TOKENIZER_EQ))
+    accept(data, TOKENIZER_VARIABLE);
+    if (!accept(data, TOKENIZER_EQ))
       ubasic_set_variable(data, varnum, relation(data));
   }
 #if defined(VARIABLE_TYPE_STRING)
@@ -1792,13 +1814,13 @@ static void let_statement(struct ubasic_data *data)
   else if (tokenizer_token(tree) == TOKENIZER_STRINGVARIABLE)
   {
     varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_STRINGVARIABLE);
-    if (!accept(tree, TOKENIZER_EQ))
+    accept(data, TOKENIZER_STRINGVARIABLE);
+    if (!accept(data, TOKENIZER_EQ))
     {
-      // print_serial("let_s:");
+      // data->serial_write_string("let_s:");
       // int16_t d=sexpr();
-      // print_serial(strptr(d));
-      // print_serial("\n");
+      // data->serial_write_string(strptr(d));
+      // data->serial_write_string("\n");
       // ubasic_set_stringvariable(varnum,d);
       ubasic_set_stringvariable(data, varnum, sexpr(data));
     }
@@ -1809,15 +1831,15 @@ static void let_statement(struct ubasic_data *data)
   else if (tokenizer_token(tree) == TOKENIZER_ARRAYVARIABLE)
   {
     varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_ARRAYVARIABLE);
+    accept(data, TOKENIZER_ARRAYVARIABLE);
 
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_LEFTPAREN);
     VARIABLE_TYPE idx = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     idx = fixedpt_toint(idx);
 #endif
-    accept(tree, TOKENIZER_RIGHTPAREN);
-    if (!accept(tree, TOKENIZER_EQ))
+    accept(data, TOKENIZER_RIGHTPAREN);
+    if (!accept(data, TOKENIZER_EQ))
       ubasic_set_arrayvariable(data, varnum, (uint16_t)idx, relation(data));
   }
 #endif
@@ -1831,11 +1853,11 @@ static void dim_statement(struct ubasic_data *data)
   VARIABLE_TYPE size = 0;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_DIM);
+  accept(data, TOKENIZER_DIM);
   uint8_t varnum = tokenizer_variable_num(tree);
-  accept(tree, TOKENIZER_ARRAYVARIABLE);
+  accept(data, TOKENIZER_ARRAYVARIABLE);
 
-  //   accept(tree, TOKENIZER_LEFTPAREN);
+  //   accept(data, TOKENIZER_LEFTPAREN);
   size = relation(data);
 
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
@@ -1844,7 +1866,7 @@ static void dim_statement(struct ubasic_data *data)
 
   ubasic_dim_arrayvariable(data, varnum, size);
 
-  //   accept(tree, TOKENIZER_RIGHTPAREN);
+  //   accept(data, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
 
   // end of array additions
@@ -1856,9 +1878,9 @@ static void next_statement(struct ubasic_data *data)
 {
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_NEXT);
+  accept(data, TOKENIZER_NEXT);
   uint8_t var = tokenizer_variable_num(tree);
-  accept(tree, TOKENIZER_VARIABLE);
+  accept(data, TOKENIZER_VARIABLE);
   if (data->for_stack_ptr > 0 && var == data->for_stack[data->for_stack_ptr - 1].for_variable)
   {
     VARIABLE_TYPE value = ubasic_get_variable(data, var) + data->for_stack[data->for_stack_ptr - 1].step;
@@ -1880,7 +1902,7 @@ static void next_statement(struct ubasic_data *data)
     return;
   }
 
-  tokenizer_error_print(tree, TOKENIZER_FOR);
+  token_error_print(data, TOKENIZER_FOR);
   data->status.bit.isRunning = 0;
   data->status.bit.Error = 1;
 }
@@ -1893,12 +1915,12 @@ static void for_statement(struct ubasic_data *data)
   VARIABLE_TYPE to;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_FOR);
+  accept(data, TOKENIZER_FOR);
   for_variable = tokenizer_variable_num(tree);
-  accept(tree, TOKENIZER_VARIABLE);
-  accept(tree, TOKENIZER_EQ);
+  accept(data, TOKENIZER_VARIABLE);
+  accept(data, TOKENIZER_EQ);
   ubasic_set_variable(data, for_variable, relation(data));
-  accept(tree, TOKENIZER_TO);
+  accept(data, TOKENIZER_TO);
   to = relation(data);
 
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
@@ -1908,7 +1930,7 @@ static void for_statement(struct ubasic_data *data)
 #endif
   if (tokenizer_token(tree) == TOKENIZER_STEP)
   {
-    accept(tree, TOKENIZER_STEP);
+    accept(data, TOKENIZER_STEP);
     step = relation(data);
   }
   accept_cr(tree);
@@ -1924,7 +1946,7 @@ static void for_statement(struct ubasic_data *data)
     return;
   }
 
-  tokenizer_error_print(tree, TOKENIZER_FOR);
+  token_error_print(data, TOKENIZER_FOR);
   data->status.bit.isRunning = 0;
   data->status.bit.Error = 1;
 }
@@ -1933,9 +1955,7 @@ static void for_statement(struct ubasic_data *data)
 
 static void end_statement(struct ubasic_data *data)
 {
-  struct tokenizer_data *tree = &data->tree;
-
-  accept(tree, TOKENIZER_END);
+  accept(data, TOKENIZER_END);
   data->status.bit.isRunning = 0;
   data->status.bit.Error = 0;
 }
@@ -1946,7 +1966,7 @@ static void sleep_statement(struct ubasic_data *data)
   VARIABLE_TYPE r;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_SLEEP);
+  accept(data, TOKENIZER_SLEEP);
   VARIABLE_TYPE f = relation(data);
   if (f > 0)
   {
@@ -1971,14 +1991,14 @@ static void tic_statement(struct ubasic_data *data)
 {
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_TIC);
-  accept(tree, TOKENIZER_LEFTPAREN);
+  accept(data, TOKENIZER_TIC);
+  accept(data, TOKENIZER_LEFTPAREN);
   VARIABLE_TYPE f = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
   f = fixedpt_toint(f);
 #endif
   timer_tic(data, f);
-  accept(tree, TOKENIZER_RIGHTPAREN);
+  accept(data, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
 }
 #endif
@@ -1989,7 +2009,7 @@ static void input_statement_wait(struct ubasic_data *data)
   struct tokenizer_data *tree = &data->tree;
 
   data->input_how = 0;
-  accept(tree, TOKENIZER_INPUT);
+  accept(data, TOKENIZER_INPUT);
   if (tokenizer_token(tree) == TOKENIZER_PRINT_HEX)
   {
     tokenizer_next(tree);
@@ -2004,7 +2024,7 @@ static void input_statement_wait(struct ubasic_data *data)
   if (tokenizer_token(tree) == TOKENIZER_VARIABLE)
   {
     data->input_varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_VARIABLE);
+    accept(data, TOKENIZER_VARIABLE);
     data->input_type = 0;
   }
 #if defined(VARIABLE_TYPE_STRING)
@@ -2012,7 +2032,7 @@ static void input_statement_wait(struct ubasic_data *data)
   else if (tokenizer_token(tree) == TOKENIZER_STRINGVARIABLE)
   {
     data->input_varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_STRINGVARIABLE);
+    accept(data, TOKENIZER_STRINGVARIABLE);
     data->input_type = 1;
   }
 // end of string additions
@@ -2021,14 +2041,14 @@ static void input_statement_wait(struct ubasic_data *data)
   else if (tokenizer_token(tree) == TOKENIZER_ARRAYVARIABLE)
   {
     data->input_varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_ARRAYVARIABLE);
+    accept(data, TOKENIZER_ARRAYVARIABLE);
 
-    accept(tree, TOKENIZER_LEFTPAREN);
+    accept(data, TOKENIZER_LEFTPAREN);
     data->input_array_index = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     data->input_array_index = fixedpt_toint(data->input_array_index);
 #endif
-    accept(tree, TOKENIZER_RIGHTPAREN);
+    accept(data, TOKENIZER_RIGHTPAREN);
     data->input_type = 2;
   }
 #endif
@@ -2039,7 +2059,7 @@ static void input_statement_wait(struct ubasic_data *data)
   //    , timeout
   if (tokenizer_token(tree) == TOKENIZER_COMMA)
   {
-    accept(tree, TOKENIZER_COMMA);
+    accept(data, TOKENIZER_COMMA);
     VARIABLE_TYPE r = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_toint(r);
@@ -2055,6 +2075,15 @@ static void input_statement_wait(struct ubasic_data *data)
   data->status.bit.WaitForSerialInput = 1;
 }
 
+static uint8_t serial_input_available(struct ubasic_data *data)
+{
+  if (data->serial_read_available)
+  {
+    return data->serial_read_available();
+  }
+  return 0;
+}
+
 static void serial_input_completed(struct ubasic_data *data)
 {
   char tmpstring[MAX_STRINGLEN];
@@ -2062,7 +2091,7 @@ static void serial_input_completed(struct ubasic_data *data)
   // transfer serial input buffer to 'buf' only if something
   // has been received.
   // otherwise leave the variable content unchanged.
-  if (serial_input(tmpstring, MAX_STRINGLEN) > 0)
+  if (data->serial_read && (data->serial_read(tmpstring, MAX_STRINGLEN) > 0))
   {
     if ((data->input_type == 0)
 #if defined(VARIABLE_TYPE_ARRAY)
@@ -2118,10 +2147,10 @@ static void while_statement(struct ubasic_data *data)
 
   // this is where we jump to after 'endwhile'
   while_offset = tokenizer_save_offset(tree);
-  accept(tree, TOKENIZER_WHILE);
+  accept(data, TOKENIZER_WHILE);
   if (data->while_stack_ptr == MAX_WHILE_STACK_DEPTH)
   {
-    tokenizer_error_print(tree, TOKENIZER_WHILE);
+    token_error_print(data, TOKENIZER_WHILE);
     data->status.bit.isRunning = 0;
     data->status.bit.Error = 1;
   }
@@ -2139,7 +2168,7 @@ static void while_statement(struct ubasic_data *data)
 
   if (data->while_stack_ptr == 0)
   {
-    tokenizer_error_print(tree, TOKENIZER_WHILE);
+    token_error_print(data, TOKENIZER_WHILE);
     data->status.bit.isRunning = 0;
     data->status.bit.Error = 1;
     return;
@@ -2172,8 +2201,8 @@ static void while_statement(struct ubasic_data *data)
       tokenizer_next(tree);
     }
     data->while_stack_ptr--;
-    accept(tree, TOKENIZER_ENDWHILE);
-    accept(tree, TOKENIZER_EOL);
+    accept(data, TOKENIZER_ENDWHILE);
+    accept(data, TOKENIZER_EOL);
   }
 
   return;
@@ -2183,7 +2212,7 @@ static void endwhile_statement(struct ubasic_data *data)
 {
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_ENDWHILE);
+  accept(data, TOKENIZER_ENDWHILE);
   if (data->while_stack_ptr > 0)
   {
     // jump_line(while_stack[while_stack_ptr-1]);
@@ -2194,7 +2223,7 @@ static void endwhile_statement(struct ubasic_data *data)
     tokenizer_jump_offset(tree, data->while_stack[data->while_stack_ptr - 1].line_while);
     return;
   }
-  tokenizer_error_print(tree, TOKENIZER_FOR);
+  token_error_print(data, TOKENIZER_FOR);
   data->status.bit.isRunning = 0;
   data->status.bit.Error = 1;
 }
@@ -2209,12 +2238,12 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
   uint8_t *datalen;
   struct tokenizer_data *tree = &data->tree;
 
-  accept(tree, TOKENIZER_RECALL);
-  accept(tree, TOKENIZER_LEFTPAREN);
+  accept(data, TOKENIZER_RECALL);
+  accept(data, TOKENIZER_LEFTPAREN);
   if (tokenizer_token(tree) == TOKENIZER_VARIABLE)
   {
     data->varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_VARIABLE);
+    accept(data, TOKENIZER_VARIABLE);
     dataptr = (uint8_t *)&data->variables[data->varnum];
     datalen = (uint8_t *)&rval;
     if (data->flash_read)
@@ -2225,7 +2254,7 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
   else if (tokenizer_token(tree) == TOKENIZER_STRINGVARIABLE)
   {
     data->varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_STRINGVARIABLE);
+    accept(data, TOKENIZER_STRINGVARIABLE);
     char dummy_s[MAX_STRINGLEN] = {0};
     dataptr = (uint8_t *)dummy_s;
     datalen = (uint8_t *)&rval;
@@ -2243,7 +2272,7 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
   else if (tokenizer_token(tree) == TOKENIZER_ARRAYVARIABLE)
   {
     data->varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_ARRAYVARIABLE);
+    accept(data, TOKENIZER_ARRAYVARIABLE);
     VARIABLE_TYPE dummy_a[VARIABLE_TYPE_ARRAY + 1];
     dataptr = (uint8_t *)dummy_a;
     datalen = (uint8_t *)&rval;
@@ -2258,7 +2287,7 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
     }
   }
 #endif
-  accept(tree, TOKENIZER_RIGHTPAREN);
+  accept(data, TOKENIZER_RIGHTPAREN);
   return rval;
 }
 
@@ -2269,13 +2298,13 @@ static void store_statement(struct ubasic_data *data)
   uint8_t *dataptr;
   uint8_t datalen;
 
-  accept(tree, TOKENIZER_STORE);
-  accept(tree, TOKENIZER_LEFTPAREN);
+  accept(data, TOKENIZER_STORE);
+  accept(data, TOKENIZER_LEFTPAREN);
 
   if (tokenizer_token(tree) == TOKENIZER_VARIABLE)
   {
     varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_VARIABLE);
+    accept(data, TOKENIZER_VARIABLE);
     dataptr = (uint8_t *)&data->variables[varnum];
     if (data->flash_write)
       data->flash_write(varnum, 0, 4, dataptr);
@@ -2284,7 +2313,7 @@ static void store_statement(struct ubasic_data *data)
   else if (tokenizer_token(tree) == TOKENIZER_STRINGVARIABLE)
   {
     varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_STRINGVARIABLE);
+    accept(data, TOKENIZER_STRINGVARIABLE);
     dataptr = (uint8_t *)strptr(data, data->stringvariables[varnum]);
     datalen = strlen((char *)dataptr);
     if (data->flash_write)
@@ -2295,14 +2324,14 @@ static void store_statement(struct ubasic_data *data)
   else if (tokenizer_token(tree) == TOKENIZER_ARRAYVARIABLE)
   {
     varnum = tokenizer_variable_num(tree);
-    accept(tree, TOKENIZER_ARRAYVARIABLE);
+    accept(data, TOKENIZER_ARRAYVARIABLE);
     datalen = 4 * (data->arrays_data[data->arrayvariable[varnum]] & 0x0000ffff);
     dataptr = (uint8_t *)&data->arrays_data[data->arrayvariable[varnum]];
     if (data->flash_write)
       data->flash_write(varnum, 2, datalen, dataptr);
   }
 #endif
-  accept(tree, TOKENIZER_RIGHTPAREN);
+  accept(data, TOKENIZER_RIGHTPAREN);
   accept_cr(tree);
 }
 /*---------------------------------------------------------------------------*/
@@ -2321,7 +2350,7 @@ static void statement(struct ubasic_data *data)
   switch (token)
   {
   case TOKENIZER_EOL:
-    accept(tree, TOKENIZER_EOL);
+    accept(data, TOKENIZER_EOL);
     break;
 
   case TOKENIZER_PRINTLN:
@@ -2375,7 +2404,7 @@ static void statement(struct ubasic_data *data)
     break;
 
   case TOKENIZER_LET:
-    accept(tree, TOKENIZER_LET); /* Fall through: Nothing to do! */
+    accept(data, TOKENIZER_LET); /* Fall through: Nothing to do! */
   case TOKENIZER_VARIABLE:
 #if defined(VARIABLE_TYPE_STRING)
   // string addition
@@ -2454,7 +2483,7 @@ static void statement(struct ubasic_data *data)
     break;
 
   default:
-    tokenizer_error_print(tree, token);
+    token_error_print(data, token);
     data->status.bit.isRunning = 0;
     data->status.bit.Error = 1;
   }
@@ -2468,8 +2497,8 @@ static void numbered_line_statement(struct ubasic_data *data)
   {
     if (tokenizer_token(tree) == TOKENIZER_COLON)
     {
-      accept(tree, TOKENIZER_COLON);
-      if (accept(tree, TOKENIZER_LABEL))
+      accept(data, TOKENIZER_COLON);
+      if (accept(data, TOKENIZER_LABEL))
         return;
       continue;
     }
@@ -2510,7 +2539,7 @@ void ubasic_run_program(struct ubasic_data *data)
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
   if (data->status.bit.WaitForSerialInput)
   {
-    if (serial_input_available() == 0)
+    if (serial_input_available(data) == 0)
     {
       if (mstimer_input_remaining(data) > 0)
         return;
@@ -2553,7 +2582,7 @@ uint8_t ubasic_execute_statement(struct ubasic_data *data, char *stmt)
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
     while (data->status.bit.WaitForSerialInput)
     {
-      if (serial_input_available() == 0)
+      if (serial_input_available(data) == 0)
       {
         if (mstimer_input_remaining(data) > 0)
           continue;
@@ -2625,12 +2654,12 @@ void ubasic_set_stringvariable(struct ubasic_data *data, uint8_t svarnum, int16_
       *(data->stringstack + svalue) = svarnum + 1;
     }
 
-    // print_serial("set_stringvar:");
+    // data->serial_write_string("set_stringvar:");
     // char msg[12];
     // sprintf(msg, "[%d]", stringvariables[svarnum]);
-    // print_serial(msg);
-    // print_serial(strptr(stringvariables[svarnum]));
-    // print_serial("\n");
+    // data->serial_write_string(msg);
+    // data->serial_write_string(strptr(stringvariables[svarnum]));
+    // data->serial_write_string("\n");
   }
 }
 
@@ -2641,12 +2670,12 @@ int16_t ubasic_get_stringvariable(struct ubasic_data *data, uint8_t varnum)
 
   if (varnum < MAX_SVARNUM)
   {
-    // print_serial("get_stringvar:");
+    // data->serial_write_string("get_stringvar:");
     // char msg[12];
     // sprintf(msg, "[%d]", stringvariables[varnum]);
-    // print_serial(msg);
-    // print_serial(strptr(stringvariables[varnum]));
-    // print_serial("\n");
+    // data->serial_write_string(msg);
+    // data->serial_write_string(strptr(stringvariables[varnum]));
+    // data->serial_write_string("\n");
 
     return data->stringvariables[varnum];
   }
