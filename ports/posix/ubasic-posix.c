@@ -183,19 +183,9 @@ static uint8_t serial_read(char *buffer, uint8_t len)
  * @param msg Pointer to the buffer to write
  * @param n Number of bytes to write
  */
-static void serial_write(const char *msg, uint16_t n)
+static void posix_serial_write(const char *msg, uint16_t n)
 {
     printf("%.*s", n, msg);
-    fflush(stdout);
-}
-
-/**
- * @brief Write a string to the serial port
- * @param msg Pointer to the string to write
- */
-static void serial_write_string(const char *msg)
-{
-    printf("%s", msg);
     fflush(stdout);
 }
 #endif
@@ -585,8 +575,7 @@ void ubasic_hardware_init(struct ubasic_data *data)
     data->random_uint32 = posix_random_uint32;
 #endif
 #if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
-    data->serial_write = serial_write;
-    data->serial_write_string = serial_write_string;
+    data->serial_write = posix_serial_write;
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
     data->serial_getline_poll = serial_getline_poll;

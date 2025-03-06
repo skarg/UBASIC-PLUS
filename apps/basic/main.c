@@ -6,10 +6,8 @@ static struct ubasic_data UBasic_Program;
 
 int main(void)
 {
-    printf("%s\n", ubasic_cli_welcome_msg());
     ubasic_hardware_init(&UBasic_Program);
-    while (1)
-    {
-      ubasic_cli(&UBasic_Program);
+    while (1) {
+        ubasic_cli(&UBasic_Program);
     }
 }

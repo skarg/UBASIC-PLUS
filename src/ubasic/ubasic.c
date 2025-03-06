@@ -296,6 +296,21 @@ static void flash_read(
     }
 }
 #endif
+/*---------------------------------------------------------------------------*/
+#if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
+static void serial_write(struct ubasic_data *data, const char *buffer, uint16_t n)
+{
+    if (data->serial_write) {
+        data->serial_write(buffer, n);
+    }
+}
+#endif
+static void serial_write_string(struct ubasic_data *data, const char *msg)
+{
+    #if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
+    serial_write(data, msg, strlen(msg));
+    #endif
+}
 
 /*---------------------------------------------------------------------------*/
 void ubasic_clear_variables(struct ubasic_data *data)
@@ -344,16 +359,16 @@ static void token_error_print(struct ubasic_data *data, VARIABLE_TYPE token)
     const char *name;
     struct tokenizer_data *tree = &data->tree;
 
-    data->serial_write_string("Err");
+    serial_write_string(data, "Err");
     name = tokenizer_name(token);
     if (name) {
         snprintf(msg, sizeof(msg), "[%s]:", name);
     } else {
         snprintf(msg, sizeof(msg), "[%u]:", (unsigned)token);
     }
-    data->serial_write_string(msg);
-    data->serial_write_string(tree->ptr - 1);
-    data->serial_write_string("\n");
+    serial_write_string(data, msg);
+    serial_write_string(data, tree->ptr - 1);
+    serial_write_string(data, "\n");
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1625,13 +1640,13 @@ static void print_statement(struct ubasic_data *data, uint8_t println)
             }
             // end of string additions
         }
-        data->serial_write_string(tmpstring);
+        serial_write_string(data, tmpstring);
     } while (tokenizer_token(tree) != TOKENIZER_EOL &&
              tokenizer_token(tree) != TOKENIZER_ENDOFINPUT);
 
     // printf("\n");
     if (println) {
-        data->serial_write_string("\n");
+        serial_write_string(data, "\n");
     }
 
     accept_cr(tree);
@@ -1855,11 +1870,6 @@ static void let_statement(struct ubasic_data *data)
         varnum = tokenizer_variable_num(tree);
         accept(data, TOKENIZER_STRINGVARIABLE);
         if (!accept(data, TOKENIZER_EQ)) {
-            // data->serial_write_string("let_s:");
-            // int16_t d=sexpr();
-            // data->serial_write_string(strptr(d));
-            // data->serial_write_string("\n");
-            // ubasic_set_stringvariable(varnum,d);
             ubasic_set_stringvariable(data, varnum, sexpr(data));
         }
     }
@@ -1869,7 +1879,6 @@ static void let_statement(struct ubasic_data *data)
     else if (tokenizer_token(tree) == TOKENIZER_ARRAYVARIABLE) {
         varnum = tokenizer_variable_num(tree);
         accept(data, TOKENIZER_ARRAYVARIABLE);
-
         accept(data, TOKENIZER_LEFTPAREN);
         VARIABLE_TYPE idx = relation(data);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || \
@@ -2170,7 +2179,7 @@ static void serial_getline_completed(struct ubasic_data *data)
     data->status.bit.WaitForSerialInput = 0;
 }
 
-#endif /* #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL) */
+#endif
 
 /*---------------------------------------------------------------------------*/
 static void while_statement(struct ubasic_data *data)
@@ -2676,13 +2685,14 @@ void ubasic_set_stringvariable(
         if (svalue > -1) {
             *(data->stringstack + svalue) = svarnum + 1;
         }
-
-        // data->serial_write_string("set_stringvar:");
-        // char msg[12];
-        // sprintf(msg, "[%d]", stringvariables[svarnum]);
-        // data->serial_write_string(msg);
-        // data->serial_write_string(strptr(stringvariables[svarnum]));
-        // data->serial_write_string("\n");
+#if defined(UBASIC_DEBUG_STRINGVARIABLES)
+        serial_write_string(data, "set_stringvar:");
+        char msg[12];
+        sprintf(msg, "[%d]", stringvariables[svarnum]);
+        serial_write_string(data, msg);
+        serial_write_string(data, strptr(stringvariables[svarnum]));
+        serial_write_string(data, "\n");
+#endif
     }
 }
 
@@ -2691,12 +2701,14 @@ void ubasic_set_stringvariable(
 int16_t ubasic_get_stringvariable(struct ubasic_data *data, uint8_t varnum)
 {
     if (varnum < MAX_SVARNUM) {
-        // data->serial_write_string("get_stringvar:");
-        // char msg[12];
-        // sprintf(msg, "[%d]", stringvariables[varnum]);
-        // data->serial_write_string(msg);
-        // data->serial_write_string(strptr(stringvariables[varnum]));
-        // data->serial_write_string("\n");
+        #if defined(UBASIC_DEBUG_STRINGVARIABLES)
+        serial_write_string(data, "get_stringvar:");
+        char msg[12];
+        sprintf(msg, "[%d]", stringvariables[varnum]);
+        serial_write_string(data, msg);
+        serial_write_string(data, strptr(stringvariables[varnum]));
+        serial_write_string(data, "\n");
+        #endif
 
         return data->stringvariables[varnum];
     }

@@ -193,7 +193,6 @@ struct ubasic_data {
     uint8_t (*serial_read)(char *buffer, uint8_t len);
 #endif
 #if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
-    void (*serial_write_string)(const char *msg);
     void (*serial_write)(const char *buffer, uint16_t n);
 #endif
 };
