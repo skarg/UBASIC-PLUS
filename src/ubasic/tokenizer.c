@@ -217,7 +217,7 @@ singlechar_or_operator(struct tokenizer_data *tree, uint8_t *offset)
 /*---------------------------------------------------------------------------*/
 static uint8_t tokenizer_next_token(struct tokenizer_data *tree)
 {
-    struct const keyword_token *kt;
+    const struct keyword_token *kt;
     uint8_t i, j;
 
     // eat all whitespace
@@ -634,7 +634,7 @@ void tokenizer_jump_offset(struct tokenizer_data *tree, uint16_t offset)
 
 const char *tokenizer_name(VARIABLE_TYPE token)
 {
-    struct const keyword_token *kt;
+    const struct keyword_token *kt;
 
     for (kt = keywords; kt->keyword != NULL; ++kt) {
         if (kt->token == token) {

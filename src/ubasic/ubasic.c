@@ -56,6 +56,7 @@ static void statement(struct ubasic_data *data);
 static VARIABLE_TYPE recall_statement(struct ubasic_data *data);
 #endif
 
+/*---------------------------------------------------------------------------*/
 #if (                                              \
     defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS) || \
     defined(UBASIC_SCRIPT_HAVE_SLEEP) ||           \
@@ -122,6 +123,7 @@ static uint32_t mstimer_remaining(const struct ubasic_mstimer *t, uint32_t now)
 }
 #endif
 
+/*---------------------------------------------------------------------------*/
 #if defined(UBASIC_SCRIPT_HAVE_TICTOC_CHANNELS)
 static void timer_tic(struct ubasic_data *data, uint8_t ch)
 {
@@ -147,6 +149,7 @@ static int32_t timer_toc(struct ubasic_data *data, uint8_t ch)
 }
 #endif
 
+/*---------------------------------------------------------------------------*/
 #if defined(UBASIC_SCRIPT_HAVE_SLEEP)
 static void mstimer_sleep(struct ubasic_data *data, int32_t ms)
 {
@@ -172,6 +175,7 @@ static int32_t mstimer_sleeping(struct ubasic_data *data)
 }
 #endif
 
+/*---------------------------------------------------------------------------*/
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
 static void mstimer_input_wait(struct ubasic_data *data, int32_t ms)
 {
@@ -194,6 +198,94 @@ static int32_t mstimer_input_remaining(struct ubasic_data *data)
         ms = 0;
     }
     return ms;
+}
+#endif
+
+/*---------------------------------------------------------------------------*/
+#if defined(UBASIC_SCRIPT_HAVE_GPIO_CHANNELS)
+static void
+gpio_config(struct ubasic_data *data, uint8_t ch, int8_t mode, uint8_t freq)
+{
+    if (data->gpio_config) {
+        data->gpio_config(ch, mode, freq);
+    }
+}
+static void gpio_write(struct ubasic_data *data, uint8_t ch, uint8_t pin_state)
+{
+    if (data->gpio_write) {
+        data->gpio_write(ch, pin_state);
+    }
+}
+static int8_t gpio_read(struct ubasic_data *data, uint8_t ch)
+{
+    if (data->gpio_read) {
+        return data->gpio_read(ch);
+    }
+    return 0;
+}
+#endif
+
+/*---------------------------------------------------------------------------*/
+#if defined(UBASIC_SCRIPT_HAVE_ANALOG_READ)
+static void
+adc_config(struct ubasic_data *data, uint8_t sampletime, uint8_t nreads)
+{
+    if (data->adc_config) {
+        data->adc_config(sampletime, nreads);
+    }
+}
+static int16_t adc_read(struct ubasic_data *data, uint8_t channel)
+{
+    if (data->adc_read) {
+        return data->adc_read(channel);
+    }
+    return 0;
+}
+#endif
+
+/*---------------------------------------------------------------------------*/
+#if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
+static int8_t hw_event(struct ubasic_data *data, uint8_t bit)
+{
+    if (data->hw_event) {
+        return data->hw_event(bit);
+    }
+    return 0;
+}
+static void hw_event_clear(struct ubasic_data *data, uint8_t bit)
+{
+    if (data->hw_event_clear) {
+        data->hw_event_clear(bit);
+    }
+}
+#endif
+
+/*---------------------------------------------------------------------------*/
+#if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
+static uint32_t random_uint32(struct ubasic_data *data, uint8_t size)
+{
+    if (data->random_uint32) {
+        return data->random_uint32(size);
+    }
+    return 0;
+}
+#endif
+
+/*---------------------------------------------------------------------------*/
+#if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
+static void flash_write(struct ubasic_data *data,
+        uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr)
+{
+    if (data->flash_write) {
+        data->flash_write(Name, Vartype, datalen_bytes, dataptr);
+    }
+}
+static void flash_read(struct ubasic_data *data,
+        uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen)
+{
+    if (data->flash_read) {
+        data->flash_read(Name, Vartype, dataptr, datalen);
+    }
 }
 #endif
 
@@ -804,16 +896,14 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
             r = fixedpt_toint(r);
 #endif
             if (r) {
-                if (data->hw_event && data->hw_event_clear) {
-                    if (data->hw_event(r - 1)) {
-                        data->hw_event_clear(r - 1);
+                if (hw_event(data, r - 1)) {
+                    hw_event_clear(data, r - 1);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || \
     defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
-                        r = FIXEDPT_ONE;
+                    r = FIXEDPT_ONE;
+#else
+                    r = 1;
 #endif
-                    } else {
-                        r = 0;
-                    }
                 } else {
                     r = 0;
                 }
@@ -825,17 +915,13 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
         case TOKENIZER_RAN:
             accept(data, TOKENIZER_RAN);
-            if (data->random_uint32) {
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || \
     defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
-                r = data->random_uint32(FIXEDPT_WBITS);
-                r = fixedpt_fromint(r);
+            r = random_uint32(data, FIXEDPT_WBITS);
+            r = fixedpt_fromint(r);
 #else
-                r = data->random_uint32(32);
+            r = random_uint32(data, 32);
 #endif
-            } else {
-                r = 0;
-            }
             if (r < 0) {
                 r = -r;
             }
@@ -916,11 +1002,7 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
         case TOKENIZER_UNIFORM:
             accept(data, TOKENIZER_UNIFORM);
-            if (data->random_uint32) {
-                r = data->random_uint32(FIXEDPT_FBITS) & FIXEDPT_FMASK;
-            } else {
-                r = 0;
-            }
+            r = random_uint32(data, FIXEDPT_FBITS) & FIXEDPT_FMASK;
             break;
 #endif
 
@@ -1024,11 +1106,7 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
     defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
             j = fixedpt_toint(j);
 #endif
-            if (data->adc_read) {
-                r = data->adc_read(j);
-            } else {
-                r = 0;
-            }
+            r = adc_read(data, j);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || \
     defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
             r = fixedpt_fromint(r);
@@ -1060,12 +1138,10 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
         case TOKENIZER_DREAD:
             accept(data, TOKENIZER_LEFTPAREN);
             r = relation(data);
-            if (data->gpio_read) {
-                r = data->gpio_read(r);
-            }
+            r = gpio_read(data, r);
             accept(data, TOKENIZER_RIGHTPAREN);
             break;
-#endif /* UBASIC_SCRIPT_HAVE_GPIO_CHANNELS */
+#endif
 
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
         case TOKENIZER_RECALL:
@@ -1405,9 +1481,7 @@ static void areadconf_statement(struct ubasic_data *data)
     defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_toint(r);
 #endif
-    if (data->adc_config) {
-        data->adc_config(j, r);
-    }
+    adc_config(data, j, r);
     accept(data, TOKENIZER_RIGHTPAREN);
     accept_cr(tree);
 }
@@ -1458,9 +1532,8 @@ static void pinmode_statement(struct ubasic_data *data)
     }
 
     accept(data, TOKENIZER_RIGHTPAREN);
-    if (data->gpio_config) {
-        data->gpio_config((uint8_t)i, (int8_t)j, (int8_t)r);
-    }
+
+    gpio_config(data, (uint8_t)i, (int8_t)j, (int8_t)r);
 
     accept_cr(tree);
 
@@ -1481,9 +1554,7 @@ static void dwrite_statemet(struct ubasic_data *data)
         r = 0x01;
     }
     accept(data, TOKENIZER_RIGHTPAREN);
-    if (data->gpio_write) {
-        data->gpio_write(j, r);
-    }
+    gpio_write(data, j, r);
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || \
     defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
     r = fixedpt_fromint(r);
@@ -2029,23 +2100,30 @@ static void input_statement_wait(struct ubasic_data *data)
     data->status.bit.WaitForSerialInput = 1;
 }
 
-static uint8_t serial_input_available(struct ubasic_data *data)
+static uint8_t serial_read(struct ubasic_data *data, char *buffer, uint8_t len)
 {
-    if (data->serial_read_available) {
-        return data->serial_read_available();
+    if (data->serial_read) {
+        return data->serial_read(buffer, len);
     }
     return 0;
 }
 
-static void serial_input_completed(struct ubasic_data *data)
+static uint8_t serial_getline_poll(struct ubasic_data *data)
+{
+    if (data->serial_getline_poll) {
+        return data->serial_getline_poll();
+    }
+    return 0;
+}
+
+static void serial_getline_completed(struct ubasic_data *data)
 {
     char tmpstring[MAX_STRINGLEN];
 
     // transfer serial input buffer to 'buf' only if something
     // has been received.
     // otherwise leave the variable content unchanged.
-    if (data->serial_read &&
-        (data->serial_read(tmpstring, MAX_STRINGLEN) > 0)) {
+    if (serial_read(data, tmpstring, MAX_STRINGLEN) > 0) {
         if ((data->input_type == 0)
 #if defined(VARIABLE_TYPE_ARRAY)
             || (data->input_type == 2)
@@ -2193,9 +2271,7 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
         accept(data, TOKENIZER_VARIABLE);
         dataptr = (uint8_t *)&data->variables[data->varnum];
         datalen = (uint8_t *)&rval;
-        if (data->flash_read) {
-            data->flash_read(data->varnum, 0, dataptr, datalen);
-        }
+        flash_read(data, data->varnum, 0, dataptr, datalen);
         rval >>= 2;
     }
 #if defined(VARIABLE_TYPE_STRING)
@@ -2205,9 +2281,7 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
         char dummy_s[MAX_STRINGLEN] = { 0 };
         dataptr = (uint8_t *)dummy_s;
         datalen = (uint8_t *)&rval;
-        if (data->flash_read) {
-            data->flash_read(data->varnum, 1, dataptr, datalen);
-        }
+        flash_read(data, data->varnum, 1, dataptr, datalen);
         if (rval > 0) {
             ubasic_set_stringvariable(
                 data, data->varnum, scpy(data, (char *)dummy_s));
@@ -2223,9 +2297,7 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
         VARIABLE_TYPE dummy_a[VARIABLE_TYPE_ARRAY + 1];
         dataptr = (uint8_t *)dummy_a;
         datalen = (uint8_t *)&rval;
-        if (data->flash_read) {
-            data->flash_read(data->varnum, 2, dataptr, datalen);
-        }
+        flash_read(data, data->varnum, 2, dataptr, datalen);
         if (rval > 0) {
             rval >>= 2;
             ubasic_dim_arrayvariable(data, data->varnum, rval);
@@ -2253,9 +2325,7 @@ static void store_statement(struct ubasic_data *data)
         varnum = tokenizer_variable_num(tree);
         accept(data, TOKENIZER_VARIABLE);
         dataptr = (uint8_t *)&data->variables[varnum];
-        if (data->flash_write) {
-            data->flash_write(varnum, 0, 4, dataptr);
-        }
+        flash_write(data, varnum, 0, 4, dataptr);
     }
 #if defined(VARIABLE_TYPE_STRING)
     else if (tokenizer_token(tree) == TOKENIZER_STRINGVARIABLE) {
@@ -2263,9 +2333,7 @@ static void store_statement(struct ubasic_data *data)
         accept(data, TOKENIZER_STRINGVARIABLE);
         dataptr = (uint8_t *)strptr(data, data->stringvariables[varnum]);
         datalen = strlen((char *)dataptr);
-        if (data->flash_write) {
-            data->flash_write(varnum, 1, datalen, dataptr);
-        }
+        flash_write(data, varnum, 1, datalen, dataptr);
     }
 #endif
 #if defined(VARIABLE_TYPE_ARRAY)
@@ -2275,9 +2343,7 @@ static void store_statement(struct ubasic_data *data)
         datalen =
             4 * (data->arrays_data[data->arrayvariable[varnum]] & 0x0000ffff);
         dataptr = (uint8_t *)&data->arrays_data[data->arrayvariable[varnum]];
-        if (data->flash_write) {
-            data->flash_write(varnum, 2, datalen, dataptr);
-        }
+        flash_write(data, varnum, 2, datalen, dataptr);
     }
 #endif
     accept(data, TOKENIZER_RIGHTPAREN);
@@ -2484,12 +2550,12 @@ void ubasic_run_program(struct ubasic_data *data)
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
     if (data->status.bit.WaitForSerialInput) {
-        if (serial_input_available(data) == 0) {
+        if (serial_getline_poll(data) == 0) {
             if (mstimer_input_remaining(data) > 0) {
                 return;
             }
         }
-        serial_input_completed(data);
+        serial_getline_completed(data);
     }
 #endif
 #if defined(VARIABLE_TYPE_STRING)
@@ -2525,12 +2591,12 @@ uint8_t ubasic_execute_statement(struct ubasic_data *data, char *stmt)
 
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
         while (data->status.bit.WaitForSerialInput) {
-            if (serial_input_available(data) == 0) {
+            if (serial_getline_poll(data) == 0) {
                 if (mstimer_input_remaining(data) > 0) {
                     continue;
                 }
             }
-            serial_input_completed(data);
+            serial_getline_completed(data);
         }
 #endif
 

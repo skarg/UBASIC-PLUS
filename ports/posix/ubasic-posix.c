@@ -138,7 +138,7 @@ static uint8_t serial_input_handler(char *buffer, unsigned buffer_len, char ch)
  * @brief Gather key presses until new-line is recieved or buffer is full
  * @return 1 if buffer is full or new-line is received, 0 line is not complete
  */
-static uint8_t serial_read_available(void)
+static uint8_t serial_getline_poll(void)
 {
     char ch;
 
@@ -229,18 +229,6 @@ static void posix_hw_event_clear(uint8_t bit)
     if (bit < 32) {
         Event_Mask &= ~(1UL << bit);
         printf("HW-Event Cleared(%d)\n", bit);
-    }
-}
-
-/**
- * @brief Set a hardware event state bit
- * @param bit Event bit
- */
-static void posix_hw_event_set(uint8_t bit)
-{
-    if (bit < 32) {
-        Event_Mask |= (1UL << bit);
-        printf("HW-Event Set(%d)\n", bit);
     }
 }
 #endif
@@ -535,10 +523,9 @@ static void posix_gpio_config(uint8_t ch, int8_t mode, uint8_t freq)
  * @param ch Channel
  * @param pin_state Pin state
  */
-static int8_t posix_gpio_write(uint8_t ch, uint8_t pin_state)
+static void posix_gpio_write(uint8_t ch, uint8_t pin_state)
 {
     printf("gpio_write(%d, %d)\n", ch, pin_state);
-    return 0;
 }
 
 /**
@@ -570,7 +557,6 @@ void ubasic_hardware_init(struct ubasic_data *data)
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
     data->hw_event = posix_hw_event;
     data->hw_event_clear = posix_hw_event_clear;
-    data->hw_event_set = posix_hw_event_set;
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_PWM_CHANNELS)
     data->pwm_config = posix_pwm_config;
@@ -594,7 +580,7 @@ void ubasic_hardware_init(struct ubasic_data *data)
     data->serial_write_string = serial_write_string;
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
-    data->serial_read_available = serial_read_available;
+    data->serial_getline_poll = serial_getline_poll;
     data->serial_read = serial_read;
 #endif
 }

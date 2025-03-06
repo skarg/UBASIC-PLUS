@@ -155,7 +155,7 @@ struct ubasic_data {
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_GPIO_CHANNELS)
     void (*gpio_config)(uint8_t ch, int8_t mode, uint8_t freq);
-    int8_t (*gpio_write)(uint8_t ch, uint8_t PinState);
+    void (*gpio_write)(uint8_t ch, uint8_t pin_state);
     int8_t (*gpio_read)(uint8_t ch);
 #endif
 #if (                                              \
@@ -171,7 +171,6 @@ struct ubasic_data {
 #if defined(UBASIC_SCRIPT_HAVE_HARDWARE_EVENTS)
     int8_t (*hw_event)(uint8_t bit);
     void (*hw_event_clear)(uint8_t bit);
-    void (*hw_event_set)(uint8_t bit);
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_RANDOM_NUMBER_GENERATOR)
     uint32_t (*random_uint32)(uint8_t size);
@@ -183,7 +182,7 @@ struct ubasic_data {
         uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen);
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
-    uint8_t (*serial_read_available)();
+    uint8_t (*serial_getline_poll)();
     uint8_t (*serial_read)(char *buffer, uint8_t len);
 #endif
 #if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)

@@ -339,7 +339,7 @@ void ubasic_cli(struct ubasic_data *data)
             cli_state = UBASIC_CLI_IDLE;
             data->serial_write_string("\n>");
         } else if (!ubasic_waiting_for_input(data)) {
-            if (data->serial_read_available && data->serial_read_available()) {
+            if (data->serial_getline_poll && data->serial_getline_poll()) {
                 if (data->serial_read &&
                     data->serial_read(statement, sizeof(statement)) &&
                     strstr(statement, "kill")) {
@@ -354,7 +354,7 @@ void ubasic_cli(struct ubasic_data *data)
     }
 
     if (cli_state != UBASIC_CLI_RUNNING) {
-        if (data->serial_read_available && data->serial_read_available()) {
+        if (data->serial_getline_poll && data->serial_getline_poll()) {
             if (data->serial_read &&
                 data->serial_read(statement, sizeof(statement)) &&
                 strstr(statement, "help")) {
