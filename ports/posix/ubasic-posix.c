@@ -329,6 +329,8 @@ eepromWrite(uint16_t start_address, uint8_t *buffer, uint16_t length)
     return bytes_written;
 }
 
+#define UBASIC_FLASH_PAGE_SIZE 256
+
 /**
  * @brief Write a variable to the EEPROM
  * @param Name Variable name
@@ -337,15 +339,15 @@ eepromWrite(uint16_t start_address, uint8_t *buffer, uint16_t length)
  * @param dataptr Pointer to the data
  */
 static void posix_flash_write(
-    uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr)
+    uint8_t Name, uint8_t vartype, uint8_t datalen_bytes, uint8_t *dataptr)
 {
-    uint16_t start_address = Name *
-        (datalen_bytes +
-         2); // Calculate the starting address based on variable name
-    uint8_t buffer[256];
+    // Calculate the starting address based on variable name
+    uint16_t start_address = Name * UBASIC_FLASH_PAGE_SIZE;
+    uint8_t buffer[UBASIC_FLASH_PAGE_SIZE];
+    size_t bytes_written = 0;
 
     // Prepare the buffer with the variable type and data length
-    buffer[0] = Vartype; // First byte is the variable type
+    buffer[0] = vartype; // First byte is the variable type
     buffer[1] = datalen_bytes; // Second byte is the data length
     for (uint8_t i = 0; i < datalen_bytes; i++) {
         buffer[i + 2] = dataptr[i]; // Copy the actual data into the buffer
@@ -353,6 +355,9 @@ static void posix_flash_write(
 
     // Write the buffer to EEPROM
     eepromWrite(start_address, buffer, datalen_bytes + 2);
+    if (bytes_written != datalen_bytes + 2) {
+        perror("flash_write error");
+    }
 }
 
 /**
@@ -363,17 +368,21 @@ static void posix_flash_write(
  * @param datalen Pointer to store the data length
  */
 static void posix_flash_read(
-    uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen)
+    uint8_t Name, uint8_t vartype, uint8_t *dataptr, uint8_t *datalen)
 {
-    uint16_t start_address =
-        Name * (256); // Calculate the starting address based on variable name
-    uint8_t buffer[256];
+    // Calculate the starting address based on variable name
+    uint16_t start_address = Name * UBASIC_FLASH_PAGE_SIZE;
+    uint8_t buffer[UBASIC_FLASH_PAGE_SIZE];
+    size_t bytes_read = 0;
 
     // Read the data from EEPROM
-    eepromRead(start_address, buffer, 256);
+    bytes_read = eepromRead(start_address, buffer, UBASIC_FLASH_PAGE_SIZE);
+    if (bytes_read != UBASIC_FLASH_PAGE_SIZE) {
+        perror("flash_read error");
+    }
 
     // Check if the variable type matches
-    if (buffer[0] == Vartype) {
+    if (buffer[0] == vartype) {
         *datalen = buffer[1]; // Get the data length
         for (uint8_t i = 0; i < *datalen; i++) {
             dataptr[i] =

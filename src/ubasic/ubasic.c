@@ -273,15 +273,23 @@ static uint32_t random_uint32(struct ubasic_data *data, uint8_t size)
 
 /*---------------------------------------------------------------------------*/
 #if defined(UBASIC_SCRIPT_HAVE_STORE_VARS_IN_FLASH)
-static void flash_write(struct ubasic_data *data,
-        uint8_t Name, uint8_t Vartype, uint8_t datalen_bytes, uint8_t *dataptr)
+static void flash_write(
+    struct ubasic_data *data,
+    uint8_t Name,
+    uint8_t Vartype,
+    uint8_t datalen_bytes,
+    uint8_t *dataptr)
 {
     if (data->flash_write) {
         data->flash_write(Name, Vartype, datalen_bytes, dataptr);
     }
 }
-static void flash_read(struct ubasic_data *data,
-        uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen)
+static void flash_read(
+    struct ubasic_data *data,
+    uint8_t Name,
+    uint8_t Vartype,
+    uint8_t *dataptr,
+    uint8_t *datalen)
 {
     if (data->flash_read) {
         data->flash_read(Name, Vartype, dataptr, datalen);
@@ -2262,26 +2270,29 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
     VARIABLE_TYPE rval = 0;
     uint8_t *dataptr;
     uint8_t *datalen;
+    uint8_t var_type;
     struct tokenizer_data *tree = &data->tree;
 
     accept(data, TOKENIZER_RECALL);
     accept(data, TOKENIZER_LEFTPAREN);
     if (tokenizer_token(tree) == TOKENIZER_VARIABLE) {
+        var_type = UBASIC_RECALL_STORE_TYPE_VARIABLE;
         data->varnum = tokenizer_variable_num(tree);
         accept(data, TOKENIZER_VARIABLE);
         dataptr = (uint8_t *)&data->variables[data->varnum];
         datalen = (uint8_t *)&rval;
-        flash_read(data, data->varnum, 0, dataptr, datalen);
+        flash_read(data, data->varnum, var_type, dataptr, datalen);
         rval >>= 2;
     }
 #if defined(VARIABLE_TYPE_STRING)
     else if (tokenizer_token(tree) == TOKENIZER_STRINGVARIABLE) {
+        var_type = UBASIC_RECALL_STORE_TYPE_STRING;
         data->varnum = tokenizer_variable_num(tree);
         accept(data, TOKENIZER_STRINGVARIABLE);
         char dummy_s[MAX_STRINGLEN] = { 0 };
         dataptr = (uint8_t *)dummy_s;
         datalen = (uint8_t *)&rval;
-        flash_read(data, data->varnum, 1, dataptr, datalen);
+        flash_read(data, data->varnum, var_type, dataptr, datalen);
         if (rval > 0) {
             ubasic_set_stringvariable(
                 data, data->varnum, scpy(data, (char *)dummy_s));
@@ -2292,6 +2303,7 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
 #endif
 #if defined(VARIABLE_TYPE_ARRAY)
     else if (tokenizer_token(tree) == TOKENIZER_ARRAYVARIABLE) {
+        var_type = UBASIC_RECALL_STORE_TYPE_ARRAY;
         data->varnum = tokenizer_variable_num(tree);
         accept(data, TOKENIZER_ARRAYVARIABLE);
         VARIABLE_TYPE dummy_a[VARIABLE_TYPE_ARRAY + 1];
@@ -2313,37 +2325,41 @@ static VARIABLE_TYPE recall_statement(struct ubasic_data *data)
 
 static void store_statement(struct ubasic_data *data)
 {
-    static uint8_t varnum;
     struct tokenizer_data *tree = &data->tree;
     uint8_t *dataptr;
     uint8_t datalen;
+    uint8_t var_type;
 
     accept(data, TOKENIZER_STORE);
     accept(data, TOKENIZER_LEFTPAREN);
 
     if (tokenizer_token(tree) == TOKENIZER_VARIABLE) {
-        varnum = tokenizer_variable_num(tree);
+        var_type = UBASIC_RECALL_STORE_TYPE_VARIABLE;
+        data->varnum = tokenizer_variable_num(tree);
         accept(data, TOKENIZER_VARIABLE);
-        dataptr = (uint8_t *)&data->variables[varnum];
-        flash_write(data, varnum, 0, 4, dataptr);
+        dataptr = (uint8_t *)&data->variables[data->varnum];
+        flash_write(data, data->varnum, var_type, 4, dataptr);
     }
 #if defined(VARIABLE_TYPE_STRING)
     else if (tokenizer_token(tree) == TOKENIZER_STRINGVARIABLE) {
-        varnum = tokenizer_variable_num(tree);
+        var_type = UBASIC_RECALL_STORE_TYPE_STRING;
+        data->varnum = tokenizer_variable_num(tree);
         accept(data, TOKENIZER_STRINGVARIABLE);
-        dataptr = (uint8_t *)strptr(data, data->stringvariables[varnum]);
+        dataptr = (uint8_t *)strptr(data, data->stringvariables[data->varnum]);
         datalen = strlen((char *)dataptr);
-        flash_write(data, varnum, 1, datalen, dataptr);
+        flash_write(data, data->varnum, var_type, datalen, dataptr);
     }
 #endif
 #if defined(VARIABLE_TYPE_ARRAY)
     else if (tokenizer_token(tree) == TOKENIZER_ARRAYVARIABLE) {
-        varnum = tokenizer_variable_num(tree);
+        var_type = UBASIC_RECALL_STORE_TYPE_ARRAY;
+        data->varnum = tokenizer_variable_num(tree);
         accept(data, TOKENIZER_ARRAYVARIABLE);
-        datalen =
-            4 * (data->arrays_data[data->arrayvariable[varnum]] & 0x0000ffff);
-        dataptr = (uint8_t *)&data->arrays_data[data->arrayvariable[varnum]];
-        flash_write(data, varnum, 2, datalen, dataptr);
+        datalen = 4 *
+            (data->arrays_data[data->arrayvariable[data->varnum]] & 0x0000ffff);
+        dataptr =
+            (uint8_t *)&data->arrays_data[data->arrayvariable[data->varnum]];
+        flash_write(data, data->varnum, var_type, datalen, dataptr);
     }
 #endif
     accept(data, TOKENIZER_RIGHTPAREN);

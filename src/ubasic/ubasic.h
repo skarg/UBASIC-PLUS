@@ -85,6 +85,13 @@ struct ubasic_while_state {
 
 #define UBASIC_SERIAL_INPUT_MS 50
 
+enum {
+    UBASIC_RECALL_STORE_TYPE_VARIABLE = 0,
+    UBASIC_RECALL_STORE_TYPE_STRING = 1,
+    UBASIC_RECALL_STORE_TYPE_ARRAY = 2,
+    UBASIC_RECALL_STORE_TYPE_MAX = 3
+};
+
 /**
  * A timer.
  *

@@ -46,7 +46,7 @@ Welcome to uBasic-Plus for by M.Kostrun\n\
 Expands upon uBasic by A.Dunkels, uBasic with string by D.Mitchell,\n\
 and uBasic for CHDK by P.d'Angelo\n>";
 
-const char *cli_welcome_msg(void)
+const char *ubasic_cli_welcome_msg(void)
 {
     return welcome_msg;
 }
@@ -254,17 +254,19 @@ if (recall(x)==0) then;\
   println 'generating x';\
   x = uniform;\
   store(x);\
+  println 'storing x=' x;\
 endif;\
-println 'stored: x=' x;\
+println 'recall: x=' x;\
 if (recall(y@)==0) then;\
-  println 'generating y';\
+  println 'generating y@';\
   dim y@(10);\
   for i=1 to 10;\
     y@(i) = uniform;\
   next i;\
   store(y@);\
+  println 'storing y@' = y@;\
 endif;\
-println 'stored: y@';\
+println 'recall: y@';\
 for i=1 to 10;\
   println '  y@('i')=' y@(i);\
 next i;\
@@ -272,8 +274,9 @@ if (recall(s$)==0) then;\
   println 'generating s';\
   s$='what is going on?';\
   store(s$);\
+  println 'store: s$',s$;\
 endif;\
-println 'stored: s$',s$;\
+println 'recall: s$',s$;\
 println 'Demo 9 Completed';\
 end"
 };
@@ -306,24 +309,42 @@ static int serial_printf(struct ubasic_data *data, const char *format, ...)
     return length;
 }
 
+const char *ubasic_cli_flash_vartype_text(uint8_t vartype)
+{
+    switch (vartype) {
+        case UBASIC_RECALL_STORE_TYPE_VARIABLE:
+            return "variable";
+        case UBASIC_RECALL_STORE_TYPE_STRING:
+            return "string";
+        case UBASIC_RECALL_STORE_TYPE_ARRAY:
+            return "array";
+        default:
+            return "unknown";
+    }
+}
+
 static void ubasic_cli_flash_dump(struct ubasic_data *data)
 {
-    uint8_t name = 0;
-    uint8_t vartype = 0;
+    uint8_t name;
+    uint8_t vartype;
     uint8_t datalen = 0;
-    uint8_t buffer[256];
+    uint8_t buffer[256] = { 0 };
 
     for (name = 0; name < 255; name++) {
+        for (vartype = 0; vartype < UBASIC_RECALL_STORE_TYPE_MAX; vartype++) {
         data->flash_read(name, vartype, buffer, &datalen);
         if (datalen > 0) {
             serial_printf(
-                data, "Variable %c: Type=%d, Length=%d, Data=", name + 'a',
-                vartype, datalen);
+                data, "%s %c: Length=%d, Data=",
+                ubasic_cli_flash_vartype_text(vartype),
+                name + 'a',
+                datalen);
             for (uint8_t i = 0; i < datalen; i++) {
                 serial_printf(data, "%02X ", buffer[i]);
             }
             serial_printf(data, "\n");
         }
+      }
     }
 }
 
