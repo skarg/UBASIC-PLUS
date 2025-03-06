@@ -68,3 +68,14 @@ message(STATUS "CMAKE_C_FLAGS_DEBUG: ${CMAKE_C_FLAGS_DEBUG}")
 message(STATUS "CMAKE_CXX_FLAGS_DEBUG: ${CMAKE_CXX_FLAGS_DEBUG}")
 
 add_subdirectory(apps/basic)
+
+find_program(CLANG_FORMAT clang-format)
+if(CLANG_FORMAT)
+  file(GLOB_RECURSE PRETTY_SRC "src/*.[c,h]")
+  add_custom_target(
+    pretty
+    COMMAND ${CLANG_FORMAT} -i -style=file -fallback-style=none ${PRETTY_SRC}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Formatting code with clang-format"
+  )
+endif()
