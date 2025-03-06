@@ -12,7 +12,6 @@
 #define UBASIC_SCRIPT_SIZE_MAX (1024)
 #define UBASIC_STATEMENT_SIZE_MAX (64)
 
-const char *ubasic_cli_welcome_msg(void);
 const char *ubasic_cli_flash_vartype_text(uint8_t vartype);
 void ubasic_cli(struct ubasic_data *data);
 

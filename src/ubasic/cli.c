@@ -92,14 +92,10 @@ static void print_numbered_lines(struct ubasic_data *data, const char *script)
 /* Example Scripts for demo command
  * ---------------------------------------------------------*/
 static const char welcome_msg[] = "\
-Welcome to uBasic-Plus for by M.Kostrun\n\
-Expands upon uBasic by A.Dunkels, uBasic with string by D.Mitchell,\n\
-and uBasic for CHDK by P.d'Angelo\n>";
-
-const char *ubasic_cli_welcome_msg(void)
-{
-    return welcome_msg;
-}
+Welcome to uBasic-Plus by M.Kostrun.\n\
+Expands upon uBasic by A.Dunkels,\n\
+uBasic with string by D.Mitchell,\n\
+and uBasic for CHDK by P.d'Angelo.\n";
 
 #if defined(UBASIC_SCRIPT_HAVE_DEMO_SCRIPTS)
 static const char *program[] = {
@@ -400,7 +396,8 @@ static void ubasic_cli_flash_dump(struct ubasic_data *data)
 void ubasic_cli(struct ubasic_data *data)
 {
     if (cli_state == UBASIC_CLI_INIT) {
-        serial_write_string(data, ubasic_cli_welcome_msg());
+        serial_write_string(data, welcome_msg);
+        serial_write_string(data, "\n>");
         cli_state = UBASIC_CLI_IDLE;
     }
 
