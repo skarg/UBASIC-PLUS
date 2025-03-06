@@ -1,9 +1,0 @@
-/home/skarg/UBASIC-PLUS/apps/basic/build/CMakeFiles/cli-basic.dir
-/home/skarg/UBASIC-PLUS/apps/basic/build/CMakeFiles/edit_cache.dir
-/home/skarg/UBASIC-PLUS/apps/basic/build/CMakeFiles/rebuild_cache.dir
-/home/skarg/UBASIC-PLUS/apps/basic/build/ubasic/CMakeFiles/ubasic.dir
-/home/skarg/UBASIC-PLUS/apps/basic/build/ubasic/CMakeFiles/edit_cache.dir
-/home/skarg/UBASIC-PLUS/apps/basic/build/ubasic/CMakeFiles/rebuild_cache.dir
-/home/skarg/UBASIC-PLUS/apps/basic/build/posix/CMakeFiles/posix.dir
-/home/skarg/UBASIC-PLUS/apps/basic/build/posix/CMakeFiles/edit_cache.dir
-/home/skarg/UBASIC-PLUS/apps/basic/build/posix/CMakeFiles/rebuild_cache.dir
