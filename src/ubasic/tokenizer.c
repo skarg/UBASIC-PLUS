@@ -112,6 +112,7 @@ static const struct keyword_token keywords[] = {
     { "ceil", TOKENIZER_CEIL },
     { "round", TOKENIZER_ROUND },
     { "pow", TOKENIZER_POWER },
+    { "avgw", TOKENIZER_AVERAGEW },
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_GPIO_CHANNELS)
     { "pinmode", TOKENIZER_PINMODE },

@@ -106,7 +106,7 @@ typedef __uint128_t fixedptud;
     ((fixedpt)(((fixedptd)(A) * (fixedptd)(B)) >> FIXEDPT_FBITS))
 #define fixedpt_xdiv(A, B) \
     ((fixedpt)(((fixedptd)(A) << FIXEDPT_FBITS) / (fixedptd)(B)))
-#define fixedpt_fracpart(A) ((fixedpt)(A)&FIXEDPT_FMASK)
+#define fixedpt_fracpart(A) ((fixedpt)(A) & FIXEDPT_FMASK)
 
 #define FIXEDPT_ONE ((fixedpt)((fixedpt)1 << FIXEDPT_FBITS))
 #define FIXEDPT_ONE_HALF (FIXEDPT_ONE >> 1)
@@ -325,7 +325,8 @@ static inline fixedpt fixedpt_cos(fixedpt A)
     return (fixedpt_sin(FIXEDPT_HALF_PI - A));
 }
 
-/* Returns the tangens of the given fixedpt number */
+/* Returns the tangens of the given fixedpt number.
+   tan(A) = sin(A) / cos(A) */
 static inline fixedpt fixedpt_tan(fixedpt A)
 {
     return fixedpt_div(fixedpt_sin(A), fixedpt_cos(A));
@@ -438,6 +439,20 @@ static inline fixedpt fixedpt_pow(fixedpt n, fixedpt exp)
     }
 
     return (fixedpt_exp(fixedpt_mul(fixedpt_ln(n), exp)));
+}
+
+/* Return a weighted moving average.
+   AN+1 = (XN+1 + N * AN)/(N+1) */
+static inline fixedpt fixedpt_averagew(
+    fixedpt latest_reading, fixedpt previous_average, fixedpt nsamples)
+{
+    if (nsamples <= 0) {
+        return latest_reading;
+    }
+
+    return (fixedpt_div(
+        fixedpt_add(latest_reading, fixedpt_mul(nsamples, previous_average)),
+        fixedpt_add(nsamples, FIXEDPT_ONE)));
 }
 
 #endif

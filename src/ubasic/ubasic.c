@@ -809,7 +809,7 @@ static VARIABLE_TYPE varfactor(struct ubasic_data *data)
 static VARIABLE_TYPE factor(struct ubasic_data *data)
 {
     VARIABLE_TYPE r;
-    VARIABLE_TYPE i, j;
+    VARIABLE_TYPE i, j, k;
 #if defined(VARIABLE_TYPE_ARRAY)
     uint8_t varnum;
 #endif
@@ -963,6 +963,20 @@ static VARIABLE_TYPE factor(struct ubasic_data *data)
 
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || \
     defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
+        case TOKENIZER_AVERAGEW:
+            accept(data, TOKENIZER_AVERAGEW);
+            accept(data, TOKENIZER_LEFTPAREN);
+            // latest_reading
+            i = relation(data);
+            accept(data, TOKENIZER_COMMA);
+            // previous_average
+            j = relation(data);
+            accept(data, TOKENIZER_COMMA);
+            // nsamples
+            k = relation(data);
+            r = fixedpt_averagew(i, j, k);
+            accept(data, TOKENIZER_RIGHTPAREN);
+            break;
         case TOKENIZER_POWER:
             accept(data, TOKENIZER_POWER);
             accept(data, TOKENIZER_LEFTPAREN);
