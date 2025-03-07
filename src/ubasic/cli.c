@@ -218,18 +218,17 @@ end;",
     "\
 println 'Demo 5 - analog inputs and arrays';\
 aread_conf(7,16);\
-n = 0;\
-m = 0;\
+a = 4096 / 2;\
+z = 4096 / 2;\
 s = 5;\
 for i = 1 to s;\
   x = aread(16);\
   y = aread(17);\
   println 'VREF,TEMP=', x, y;\
-  n = avgw(x,n,s);\
-  m = avgw(y,m,s);\
-  println 'n=', n;\
+  a = avgw(x,a,s);\
+  z = avgw(y,z,s);\
 next i;\
-println 'average x y=', n, m;\
+println 'average x y=', a, z;\
 for i = 1 to 1;\
   n = floor(10 * uniform) + 2 ;\
   dim b@(n);\

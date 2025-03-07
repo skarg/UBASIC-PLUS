@@ -2666,7 +2666,7 @@ uint8_t ubasic_finished(struct ubasic_data *data)
 void ubasic_set_variable(
     struct ubasic_data *data, uint8_t varnum, VARIABLE_TYPE value)
 {
-    if (varnum > 0 && varnum <= MAX_VARNUM) {
+    if (varnum < MAX_VARNUM) {
         data->variables[varnum] = value;
     }
 }
@@ -2675,7 +2675,7 @@ void ubasic_set_variable(
 
 VARIABLE_TYPE ubasic_get_variable(struct ubasic_data *data, uint8_t varnum)
 {
-    if (varnum > 0 && varnum <= MAX_VARNUM) {
+    if (varnum < MAX_VARNUM) {
         return data->variables[varnum];
     }
     return 0;
