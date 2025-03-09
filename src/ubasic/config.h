@@ -165,6 +165,8 @@
 
 #endif
 
+#define UBASIC_STATEMENT_SIZE (64)
+
 #define MAX_STRINGLEN 40
 #define MAX_LABEL_LEN 10
 

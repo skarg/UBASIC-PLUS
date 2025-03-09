@@ -10,7 +10,7 @@ project(uBASIC-Plus
 # set the C standard
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS ON)
+set(CMAKE_C_EXTENSIONS OFF)
 
 # Cross compilers and tools
 set(CMAKE_SYSTEM_NAME Generic)

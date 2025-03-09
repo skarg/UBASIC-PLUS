@@ -298,7 +298,8 @@ static void flash_read(
 #endif
 /*---------------------------------------------------------------------------*/
 #if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
-static void serial_write(struct ubasic_data *data, const char *buffer, uint16_t n)
+static void
+serial_write(struct ubasic_data *data, const char *buffer, uint16_t n)
 {
     if (data->serial_write) {
         data->serial_write(buffer, n);
@@ -307,9 +308,42 @@ static void serial_write(struct ubasic_data *data, const char *buffer, uint16_t 
 #endif
 static void serial_write_string(struct ubasic_data *data, const char *msg)
 {
-    #if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
+#if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
     serial_write(data, msg, strlen(msg));
-    #endif
+#endif
+}
+/**
+ * @brief Print with a printf string
+ * @param format - printf format string
+ * @param ... - variable arguments
+ * @note This function is only available if
+ * PRINT_ENABLED is non-zero
+ * @return number of characters printed
+ */
+int ubasic_printf(struct ubasic_data *data, const char *format, ...)
+{
+    int length = 0;
+    char buffer[256];
+    va_list ap;
+
+    va_start(ap, format);
+    length = vsnprintf(buffer, sizeof(buffer), format, ap);
+#if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
+    serial_write(data, buffer, length);
+#endif
+    va_end(ap);
+
+    return length;
+}
+
+int ubasic_getc(struct ubasic_data *data)
+{
+#if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
+    if (data->ubasic_getc) {
+        return data->ubasic_getc();
+    }
+#endif
+    return EOF;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2131,30 +2165,11 @@ static void input_statement_wait(struct ubasic_data *data)
     data->status.bit.WaitForSerialInput = 1;
 }
 
-static uint8_t serial_read(struct ubasic_data *data, char *buffer, uint8_t len)
-{
-    if (data->serial_read) {
-        return data->serial_read(buffer, len);
-    }
-    return 0;
-}
-
-static uint8_t serial_getline_poll(struct ubasic_data *data)
-{
-    if (data->serial_getline_poll) {
-        return data->serial_getline_poll();
-    }
-    return 0;
-}
-
 static void serial_getline_completed(struct ubasic_data *data)
 {
-    char tmpstring[MAX_STRINGLEN];
-
-    // transfer serial input buffer to 'buf' only if something
-    // has been received.
+    // process if something has been received.
     // otherwise leave the variable content unchanged.
-    if (serial_read(data, tmpstring, MAX_STRINGLEN) > 0) {
+    if (strlen(data->statement) > 0) {
         if ((data->input_type == 0)
 #if defined(VARIABLE_TYPE_ARRAY)
             || (data->input_type == 2)
@@ -2162,14 +2177,15 @@ static void serial_getline_completed(struct ubasic_data *data)
         ) {
             VARIABLE_TYPE r;
             if ((data->input_how == 1) || (data->input_how == 2)) {
-                r = atoi(tmpstring);
+                r = atoi(data->statement);
             } else {
                 // process number
 #if defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_24_8) || \
     defined(VARIABLE_TYPE_FLOAT_AS_FIXEDPT_22_10)
-                r = str_fixedpt(tmpstring, MAX_STRINGLEN, FIXEDPT_FBITS >> 1);
+                r = str_fixedpt(
+                    data->statement, MAX_STRINGLEN, FIXEDPT_FBITS >> 1);
 #else
-                r = atoi(tmpstring);
+                r = atoi(data->statement);
 #endif
             }
 
@@ -2186,13 +2202,13 @@ static void serial_getline_completed(struct ubasic_data *data)
 #if defined(VARIABLE_TYPE_STRING)
         else if (data->input_type == 1) {
             ubasic_set_stringvariable(
-                data, data->input_varnum, scpy(data, tmpstring));
+                data, data->input_varnum, scpy(data, data->statement));
         }
 #endif
     }
+    memset(data->statement, 0, sizeof(data->statement));
     data->status.bit.WaitForSerialInput = 0;
 }
-
 #endif
 
 /*---------------------------------------------------------------------------*/
@@ -2589,7 +2605,7 @@ void ubasic_run_program(struct ubasic_data *data)
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
     if (data->status.bit.WaitForSerialInput) {
-        if (serial_getline_poll(data) == 0) {
+        if (!ubasic_getline(data, ubasic_getc(data))) {
             if (mstimer_input_remaining(data) > 0) {
                 return;
             }
@@ -2630,7 +2646,7 @@ uint8_t ubasic_execute_statement(struct ubasic_data *data, char *stmt)
 
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
         while (data->status.bit.WaitForSerialInput) {
-            if (serial_getline_poll(data) == 0) {
+            if (!ubasic_getline(data, ubasic_getc(data))) {
                 if (mstimer_input_remaining(data) > 0) {
                     continue;
                 }
@@ -2654,6 +2670,99 @@ uint8_t ubasic_execute_statement(struct ubasic_data *data, char *stmt)
 uint8_t ubasic_waiting_for_input(struct ubasic_data *data)
 {
     return (data->status.bit.WaitForSerialInput);
+}
+
+/**
+ * @brief Append a character to a line of text, if there is space
+ * @param buffer - buffer that recieves the appended character
+ * @param buffer_len - sizeof the buffer
+ * @param ch - character to append
+ * @return 1 if character was appended, 0 if not
+ */
+static int line_append_char(char *buffer, unsigned buffer_len, char ch)
+{
+    unsigned len = 0;
+    bool status = false;
+
+    len = strlen(buffer);
+    if (len < (buffer_len - 1)) {
+        buffer[len] = ch;
+        buffer[len + 1] = 0;
+        status = true;
+    }
+
+    return status;
+}
+
+/**
+ * @brief Remove the trailing character from a line of text
+ * @param buffer - buffer to remove the trailing character
+ * @param buffer_len - sizeof the buffer
+ * @return 1 if character was removed, 0 if not
+ */
+static int line_remove_char(char *buffer, size_t buffer_len)
+{
+    unsigned len = 0;
+    int status = 0;
+
+    len = strlen(buffer);
+    if ((len > 0) && (len < (buffer_len - 1))) {
+        buffer[len - 1] = 0;
+        status = 1;
+    }
+
+    return status;
+}
+
+/**
+ * @brief Non-blocking serial getline task
+ * @param data - ubasic data structure
+ * @return 1 if statement is complete and ready to process, 0 if not
+ */
+uint8_t ubasic_getline(struct ubasic_data *data, int ch)
+{
+    uint8_t eol = 0;
+
+    if (ch == EOF) {
+        return 0;
+    }
+    switch (ch) {
+        case '\a':
+        case '\f':
+        case '\t':
+        case '\r':
+        case '\v':
+            /* ignored characters */
+            break;
+        case 0x1B:
+            /* escape */
+            /* clear buffer */
+            data->statement[0] = 0;
+            eol = 1;
+            break;
+        case '\b':
+            /* console backspace */
+            line_remove_char(data->statement, sizeof(data->statement));
+            break;
+        case 0x7F:
+            /* DEL */
+            line_remove_char(data->statement, sizeof(data->statement));
+            break;
+        case '\n':
+            /* enter */
+            eol = 1;
+            break;
+        default:
+            /* all the rest of the characters */
+            if (line_append_char(
+                    data->statement, sizeof(data->statement), ch)) {
+            } else {
+                eol = 1;
+            }
+            break;
+    }
+
+    return eol;
 }
 
 uint8_t ubasic_finished(struct ubasic_data *data)
@@ -2715,14 +2824,14 @@ void ubasic_set_stringvariable(
 int16_t ubasic_get_stringvariable(struct ubasic_data *data, uint8_t varnum)
 {
     if (varnum < MAX_SVARNUM) {
-        #if defined(UBASIC_DEBUG_STRINGVARIABLES)
+#if defined(UBASIC_DEBUG_STRINGVARIABLES)
         serial_write_string(data, "get_stringvar:");
         char msg[12];
         sprintf(msg, "[%d]", stringvariables[varnum]);
         serial_write_string(data, msg);
         serial_write_string(data, strptr(stringvariables[varnum]));
         serial_write_string(data, "\n");
-        #endif
+#endif
 
         return data->stringvariables[varnum];
     }

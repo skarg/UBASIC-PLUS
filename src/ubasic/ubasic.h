@@ -42,7 +42,9 @@
 
 #ifndef __UBASIC_H__
 #define __UBASIC_H__
-
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include "config.h"
 #include "platform.h"
 #include "tokenizer.h"
@@ -142,7 +144,8 @@ struct ubasic_data {
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
     uint8_t input_varnum;
     uint8_t input_type;
-#endif
+    char statement[UBASIC_STATEMENT_SIZE];
+    #endif
 #if defined(VARIABLE_TYPE_ARRAY)
     VARIABLE_TYPE input_array_index;
 #endif
@@ -189,8 +192,7 @@ struct ubasic_data {
         uint8_t Name, uint8_t Vartype, uint8_t *dataptr, uint8_t *datalen);
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
-    uint8_t (*serial_getline_poll)();
-    uint8_t (*serial_read)(char *buffer, uint8_t len);
+    int (*ubasic_getc)(void);
 #endif
 #if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
     void (*serial_write)(const char *buffer, uint16_t n);
@@ -202,7 +204,11 @@ void ubasic_clear_variables(struct ubasic_data *data);
 void ubasic_run_program(struct ubasic_data *data);
 uint8_t ubasic_execute_statement(struct ubasic_data *data, char *statement);
 uint8_t ubasic_finished(struct ubasic_data *data);
+
 uint8_t ubasic_waiting_for_input(struct ubasic_data *data);
+uint8_t ubasic_getline(struct ubasic_data *data, int ch);
+int ubasic_printf(struct ubasic_data *data, const char *format, ...);
+int ubasic_getc(struct ubasic_data *data);
 
 VARIABLE_TYPE ubasic_get_variable(struct ubasic_data *data, uint8_t varnum);
 void ubasic_set_variable(

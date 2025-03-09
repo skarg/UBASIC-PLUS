@@ -53,8 +53,6 @@
 #include "ubasic/ubasic.h"
 
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
-static char Serial_Buffer[256];
-
 #if defined(__GNUC__)
 /**
  * @brief Check if a key has been pressed
@@ -82,103 +80,6 @@ static int kbhit(void)
 #endif
 
 /**
- * @brief Non-blocking terminal task
- * @param ch - character read from serial port
- * @return 1 if line is complete and ready to process, 0 if not
- */
-static uint8_t serial_input_handler(char *buffer, unsigned buffer_len, char ch)
-{
-    uint8_t done = 0;
-    size_t i;
-
-    if (!buffer || buffer_len == 0) {
-        return 0;
-    }
-    switch (ch) {
-        case '\a':
-        case '\f':
-        case '\t':
-        case '\r':
-        case '\v':
-            /* ignored characters */
-            break;
-        case 0x1B:
-            /* escape */
-            /* clear buffer */
-            buffer[0] = 0;
-            done = 1;
-            break;
-        case '\b':
-            /* backspace */
-            /* erase current character */
-            i = strlen(buffer);
-            if ((i > 0) && (i < (buffer_len - 1))) {
-                buffer[i - 1] = 0;
-            }
-            break;
-        case '\n':
-            /* enter */
-            done = 1;
-            break;
-        default:
-            /* all the rest of the characters */
-            /* leave room for null at the end */
-            i = strlen(buffer);
-            if (i < (buffer_len - 1)) {
-                buffer[i] = ch;
-                buffer[i + 1] = 0;
-            }
-            break;
-    }
-
-    return done;
-}
-
-/**
- * @brief Gather key presses until new-line is recieved or buffer is full
- * @return 1 if buffer is full or new-line is received, 0 line is not complete
- */
-static uint8_t serial_getline_poll(void)
-{
-    char ch;
-
-    if (kbhit()) {
-        ch = getchar();
-        return serial_input_handler(Serial_Buffer, sizeof(Serial_Buffer), ch);
-    }
-
-    return 0;
-}
-
-/**
- * @brief Copy the serial buffer to the provided buffer
- * @param buffer Pointer to the buffer to copy to
- * @param len Length of the buffer
- * @return Number of bytes copied
- * @note The serial buffer is cleared after copying
- */
-static uint8_t serial_read(char *buffer, uint8_t len)
-{
-    uint16_t i;
-
-    if (!buffer || len == 0) {
-        return 0;
-    }
-    for (i = 0; i < len; i++) {
-        buffer[i] = Serial_Buffer[i];
-        if (Serial_Buffer[i] == '\0') {
-            break;
-        }
-    }
-    buffer[i] = '\0'; // Ensure null-termination
-    Serial_Buffer[0] = '\0';
-
-    return i;
-}
-#endif
-
-#if defined(UBASIC_SCRIPT_PRINT_TO_SERIAL)
-/**
  * @brief Write a buffer to the serial port
  * @param msg Pointer to the buffer to write
  * @param n Number of bytes to write
@@ -187,6 +88,22 @@ static void posix_serial_write(const char *msg, uint16_t n)
 {
     printf("%.*s", n, msg);
     fflush(stdout);
+}
+
+/**
+ * @brief Gather key presses until new-line is recieved or buffer is full
+ * @return return the next byte from the input stream, or EOF(-1) if no byte is
+ *  available
+ */
+static int posix_serial_getc(void)
+{
+    int ch = -1;
+
+    if (kbhit()) {
+        ch = fgetc(stdin);
+    }
+
+    return ch;
 }
 #endif
 
@@ -578,7 +495,6 @@ void ubasic_hardware_init(struct ubasic_data *data)
     data->serial_write = posix_serial_write;
 #endif
 #if defined(UBASIC_SCRIPT_HAVE_INPUT_FROM_SERIAL)
-    data->serial_getline_poll = serial_getline_poll;
-    data->serial_read = serial_read;
+    data->ubasic_getc = posix_serial_getc;
 #endif
 }
